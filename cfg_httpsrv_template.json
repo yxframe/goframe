@@ -1,0 +1,36 @@
+{
+    "reader" : "github.com/yxlib/httpsrv.DefaultReader",
+    "writer" : "github.com/yxlib/httpsrv.NewDefaultWriter",
+    "proto_interceptor" : "github.com/yxlib/server.JsonInterceptor",
+    "http" :
+    {
+        "port" : 8080,
+        "allow_origin" : true,
+        "opr_field" : "opr",
+        "token_field" : "tk",
+        "serial_No_field" : "sno",
+        "params_field" : "data",
+        "code_field" : "code",
+        "result_field" : "data",
+        "pattern" :
+        {
+            "/example" :
+            {
+                "service" : "github.com/yxlib/httpsrv.ExampleService",
+                "opr" :
+                {
+                    "test1" : {
+                        "handler" : "OnHandleCmd1",
+                        "req" : "github.com/yxlib/httpsrv.Cmd1Request",
+                        "resp" : "github.com/yxlib/httpsrv.Cmd1Response"
+                    },
+                    "test2" : {
+                        "handler" : "OnHandleCmd2",
+                        "req" : "github.com/yxlib/httpsrv.Cmd2Request",
+                        "resp" : "github.com/yxlib/httpsrv.Cmd2Response"
+                    }
+                }
+            }
+        }
+    }
+}

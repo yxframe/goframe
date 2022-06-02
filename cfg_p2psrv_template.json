@@ -1,0 +1,69 @@
+{
+    "header_factory" : "github.com/yxframe/goframe.TestHeaderFactory",
+    "net_listener" : "github.com/yxframe/goframe.NetListener",
+    "srv_net" : "github.com/yxframe/goframe.TestSrvNet",
+    "proto_interceptor" : "github.com/yxframe/goframe.PbInterceptor",
+    "sock" :
+    {
+        "ip_conn_limit" : 500,
+        "max_read_queue" : 10,
+        "max_write_queue" : 10,
+        "network" : "tcp",
+        "address" : "",
+        "port" : 8080,
+        "bind_peer_type" : 3,
+        "min_peer_no" : 1,
+        "max_peer_no" : 65535,
+        "max_idle_time_second" : 15,
+        "max_act_intv_second" : 30,
+        "max_send_cnt_per_second" : 60,
+        "max_send_size_per_second" : 245760
+    },
+    "ws" :
+    {
+        "ip_conn_limit" : 500,
+        "max_read_queue" : 10,
+        "max_write_queue" : 10,
+        "network" : "tcp",
+        "address" : "",
+        "port" : 8080,
+        "bind_peer_type" : 3,
+        "min_peer_no" : 1,
+        "max_peer_no" : 65535,
+        "max_idle_time_second" : 15,
+        "max_act_intv_second" : 30,
+        "max_send_cnt_per_second" : 60,
+        "max_send_size_per_second" : 245760,
+        "pattern" : "/app",
+        "read_buff_size" : 1024,
+        "write_buff_size" : 1024,
+        "check_origin" : true
+    },
+    "server" :
+    {
+        "max_req_num" : 10,
+        "max_task_num" : 10,
+        "services" :
+        [
+            {
+                "service" : "github.com/yxlib/server.ExampleService",
+                "mod" : 1,
+                "processors" :
+                [
+                    {
+                        "cmd" : 1,
+                        "handler" : "OnHandleCmd1",
+                        "req" : "github.com/yxlib/server.Cmd1Request",
+                        "resp" : "github.com/yxlib/server.Cmd1Response"
+                    },
+                    {
+                        "cmd" : 2,
+                        "handler" : "OnHandleCmd2",
+                        "req" : "github.com/yxlib/server.Cmd2Request",
+                        "resp" : "github.com/yxlib/server.Cmd2Response"
+                    }
+                ]
+            }
+        ]
+    }
+}

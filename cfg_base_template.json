@@ -1,0 +1,16 @@
+{
+    "peer_type" : 1,
+    "peer_no" : 1,
+    "name" : "gamesrv",
+    "debug_mode" : true,
+    "log" :
+    {
+        "level" : 0,
+        "power_shell_run" : false,
+        "is_dump" : false,
+        "dump_path" : "game.log",
+        "dump_file_size" : 4096,
+        "dump_threshold" : 32,
+        "dump_interval" : 100
+    }
+}
