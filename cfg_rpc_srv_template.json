@@ -1,0 +1,17 @@
+{
+    "srv" : "github.com/yxframe/goframe.TestRpcSrv",
+    "rpc" :
+    {
+        "mark" : "TEST_RPC",
+        "func" :
+        {
+            "Test" :
+            {
+                "handler" : "OnTest",
+                "req" : "github.com/yxframe/goframe.TestReq",
+                "resp" : "github.com/yxframe/goframe.TestResp"
+            }
+        }
+    },
+    "is_use_srv_conn" : true
+}

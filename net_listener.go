@@ -1,43 +1,161 @@
-// Copyright 2022 Guan Jianchang. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
-package basics
+package goframe
 
 import (
 	"github.com/yxlib/p2pnet"
-	"github.com/yxlib/yx"
+	"github.com/yxlib/reg"
+	"github.com/yxlib/rpc"
 )
 
-type NetListener struct {
-	logger *yx.Logger
+//========================
+//     RegPushNetListener
+//========================
+type RegPushNetListener struct {
+	*rpc.BaseNet
 }
 
-func NewNetListener() *NetListener {
-	return &NetListener{
-		logger: yx.NewLogger("NetListener"),
+func NewRegPushNetListener(maxReadQue uint32) *RegPushNetListener {
+	return &RegPushNetListener{
+		BaseNet: rpc.NewBaseNet(maxReadQue),
 	}
 }
 
-func (l *NetListener) OnP2pNetOpenPeer(m p2pnet.PeerMgr, peerType uint32, peerNo uint32) {
-	l.logger.I("OnP2pNetOpenPeer (", peerType, ", ", peerNo, ")")
+func (l *RegPushNetListener) OnP2pNetOpenPeer(m p2pnet.PeerMgr, peerType uint32, peerNo uint32) {
 }
 
-func (l *NetListener) OnP2pNetClosePeer(m p2pnet.PeerMgr, peerType uint32, peerNo uint32, ipAddr string) {
-	l.logger.I("OnP2pNetClosePeer (", peerType, ", ", peerNo, ")")
+func (l *RegPushNetListener) OnP2pNetClosePeer(m p2pnet.PeerMgr, peerType uint32, peerNo uint32, ipAddr string) {
 }
 
-func (l *NetListener) OnP2pNetReadPack(m p2pnet.PeerMgr, pack *p2pnet.Pack, recvPeerType uint32, recvPeerNo uint32) bool {
-	l.logger.I("OnP2pNetReadPack (", recvPeerType, ", ", recvPeerNo, ")")
-	err := ServInst.HandleP2pPack(pack, recvPeerType, recvPeerNo)
-	if err != nil {
+func (l *RegPushNetListener) OnP2pNetReadPack(m p2pnet.PeerMgr, pack *p2pnet.Pack, recvPeerType uint32, recvPeerNo uint32) bool {
+	bCanHandle := canHandleRpcPack(l, pack, recvPeerType, recvPeerNo)
+	if bCanHandle {
+		buff, ok := pack.GetFramesJoin()
+		if ok {
+			l.AddReadPack(recvPeerType, recvPeerNo, buff)
+		}
+
+		pack.Reset()
+		m.ReusePack(pack, recvPeerType, recvPeerNo)
+	}
+
+	return bCanHandle
+}
+
+func (l *RegPushNetListener) OnP2pNetError(m p2pnet.PeerMgr, peerType uint32, peerNo uint32, err error) {
+}
+
+//========================
+//     RpcNetListener
+//========================
+type P2pRpcNetMgr interface {
+	HandleCloseRpcPeer(peerType uint32, peerNo uint32)
+	GetRpcHeaderFactory(mark string) p2pnet.PackHeaderFactory
+	GetRpcPeerMgr(mark string) p2pnet.PeerMgr
+}
+
+type RpcNetListener struct {
+	*rpc.BaseNet
+	mgr P2pRpcNetMgr
+}
+
+func NewRpcNetListener(maxReadQue uint32, mgr P2pRpcNetMgr) *RpcNetListener {
+	return &RpcNetListener{
+		BaseNet: rpc.NewBaseNet(maxReadQue),
+		mgr:     mgr,
+	}
+}
+
+func (l *RpcNetListener) isCurRpcPeer(peerType uint32, peerNo uint32) bool {
+	srvPeerType, srvPeerNo := l.GetPeerTypeAndNo()
+	return (peerType == srvPeerType && peerNo == srvPeerNo)
+}
+
+func (l *RpcNetListener) OnP2pNetOpenPeer(m p2pnet.PeerMgr, peerType uint32, peerNo uint32) {
+}
+
+func (l *RpcNetListener) OnP2pNetClosePeer(m p2pnet.PeerMgr, peerType uint32, peerNo uint32, ipAddr string) {
+	if l.IsSrvNet() {
+		l.mgr.HandleCloseRpcPeer(peerType, peerNo)
+		return
+	}
+
+	if !l.isCurRpcPeer(peerType, peerNo) {
+		return
+	}
+
+	if l.GetReadMark() != reg.REG_MARK {
+		m.RemoveListener(l)
+	}
+
+	l.mgr.HandleCloseRpcPeer(peerType, peerNo)
+}
+
+func (l *RpcNetListener) OnP2pNetReadPack(m p2pnet.PeerMgr, pack *p2pnet.Pack, recvPeerType uint32, recvPeerNo uint32) bool {
+	bCanHandle := canHandleRpcPack(l, pack, recvPeerType, recvPeerNo)
+	if bCanHandle {
+		buff, ok := pack.GetFramesJoin()
+		if ok {
+			l.AddReadPack(recvPeerType, recvPeerNo, buff)
+		}
+
+		pack.Reset()
+		m.ReusePack(pack, recvPeerType, recvPeerNo)
+	}
+
+	return bCanHandle
+}
+
+func (l *RpcNetListener) OnP2pNetError(m p2pnet.PeerMgr, peerType uint32, peerNo uint32, err error) {
+}
+
+func (l *RpcNetListener) WriteRpcPack(payload []rpc.ByteArray, dstPeerType uint32, dstPeerNo uint32) error {
+	mark := l.GetReadMark()
+
+	factory := l.mgr.GetRpcHeaderFactory(mark)
+	h := factory.CreateHeader()
+	pack := p2pnet.NewPack(h)
+	pack.AddFrames(payload)
+	pack.UpdatePayloadLen()
+
+	mgr := l.mgr.GetRpcPeerMgr(mark)
+	return mgr.SendByPeer(pack, dstPeerType, dstPeerNo)
+}
+
+func canHandleRpcPack(n rpc.Net, pack *p2pnet.Pack, recvPeerType uint32, recvPeerNo uint32) bool {
+	mark := n.GetReadMark()
+	if !rpc.CheckRpcMark([]byte(mark), pack.Payload[0]) {
 		return false
 	}
 
-	m.ReusePack(pack, recvPeerType, recvPeerNo)
-	return true
+	if n.IsSrvNet() {
+		return true
+	}
+
+	srvPeerType, srvPeerNo := n.GetPeerTypeAndNo()
+	return (recvPeerType == srvPeerType && recvPeerNo == srvPeerNo)
 }
 
-func (l *NetListener) OnP2pNetError(m p2pnet.PeerMgr, peerType uint32, peerNo uint32, err error) {
-	l.logger.E("OnP2pNetError (", peerType, ", ", peerNo, "), err: ", err)
+//========================
+//     TranNetListener
+//========================
+type TranNetListener struct {
+	p2pnet.BaseP2pNetListner
+	peerType uint32
+	peerNo   uint32
+}
+
+func NewTranNetListener(peerType uint32, peerNo uint32) *TranNetListener {
+	return &TranNetListener{
+		peerType: peerType,
+		peerNo:   peerNo,
+	}
+}
+
+func (l *TranNetListener) OnP2pNetReadPack(m p2pnet.PeerMgr, pack *p2pnet.Pack, recvPeerType uint32, recvPeerNo uint32) bool {
+	dstPeerType, dstPeerNo := pack.Header.GetDstPeer()
+	if l.peerType == dstPeerType && l.peerNo == dstPeerNo {
+		return false
+	}
+
+	m.SendByPeer(pack, dstPeerType, dstPeerNo)
+	return true
 }

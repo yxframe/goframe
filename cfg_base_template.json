@@ -12,5 +12,24 @@
         "dump_file_size" : 4096,
         "dump_threshold" : 32,
         "dump_interval" : 100
+    },
+    "reg" :
+    {
+        "impl" : "github.com/yxframe/goframe.TestSrvRegImpl",
+        "peer_type" : 2,
+        "peer_no" : 1,
+        "network" : "tcp",
+        "address" : "127.0.0.1",
+        "port" : 3262,
+        "timeout" : 3,
+        "max_read_queue" : 10,
+        "max_write_queue" : 10
+    },
+    "p2p_cli" :
+    {
+        "is_ws_cli" : false,
+        "header_factory" : "github.com/yxframe/goframe.TestHeaderFactory",
+        "max_read_queue" : 10,
+        "max_write_queue" : 10
     }
 }
