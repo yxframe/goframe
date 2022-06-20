@@ -50,8 +50,9 @@ type RegCfg struct {
 
 type RpcSrvCfg struct {
 	Srv          string       `json:"srv"`
-	RpcSrv       *rpc.SrvConf `json:"rpc"`
+	MaxReadQue   uint32       `json:"max_read_queue"`
 	IsUseSrvConn bool         `json:"is_use_srv_conn"`
+	RpcSrv       *rpc.SrvConf `json:"rpc"`
 }
 
 type P2pSrvCfg struct {

@@ -361,11 +361,15 @@ func (s *BaseServer) buildP2pConnSrv(srvCfg *SrvCfg) error {
 	// p2p server
 	if cfg.Sock != nil {
 		s.p2pConnSrv = p2pnet.NewSockServ(peerMgr, cfg.Sock.IpConnCntLimit, headerFactory, cfg.Sock.MaxReadQue, cfg.Sock.MaxWriteQue)
-		s.p2pConnSrv.SetAcceptBindPeerType(cfg.Sock.BindPeerType, cfg.Sock.MinPeerNo, cfg.Sock.MaxPeerNo)
+		if cfg.Sock.BindPeerType > 0 {
+			s.p2pConnSrv.SetAcceptBindPeerType(cfg.Sock.BindPeerType, cfg.Sock.MinPeerNo, cfg.Sock.MaxPeerNo)
+		}
 	} else {
 		wsSrv := p2pnet.NewWebSockServ(peerMgr, cfg.Websock.IpConnCntLimit, headerFactory, cfg.Websock.MaxReadQue, cfg.Websock.MaxWriteQue)
 		wsSrv.Init(cfg.Websock.Pattern, nil)
-		wsSrv.SetAcceptBindPeerType(cfg.Websock.BindPeerType, cfg.Websock.MinPeerNo, cfg.Websock.MaxPeerNo)
+		if cfg.Websock.BindPeerType > 0 {
+			wsSrv.SetAcceptBindPeerType(cfg.Websock.BindPeerType, cfg.Websock.MinPeerNo, cfg.Websock.MaxPeerNo)
+		}
 		s.p2pConnSrv = wsSrv
 	}
 

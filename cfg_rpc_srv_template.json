@@ -1,5 +1,7 @@
 {
     "srv" : "github.com/yxframe/goframe.TestRpcSrv",
+    "max_read_queue" : 10,
+    "is_use_srv_conn" : true,
     "rpc" :
     {
         "mark" : "TEST_RPC",
@@ -12,6 +14,5 @@
                 "resp" : "github.com/yxframe/goframe.TestResp"
             }
         }
-    },
-    "is_use_srv_conn" : true
+    }
 }
