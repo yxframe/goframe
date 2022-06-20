@@ -37,6 +37,7 @@ type P2pConnSrvCfg struct {
 
 type RegCfg struct {
 	SrvRegImpl  string `json:"impl"`
+	RegNet      string `json:"reg_net"`
 	PeerType    uint32 `json:"peer_type"`
 	PeerNo      uint32 `json:"peer_no"`
 	Network     string `json:"network"`

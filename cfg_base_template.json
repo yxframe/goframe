@@ -1,14 +1,14 @@
 {
     "peer_type" : 1,
     "peer_no" : 1,
-    "name" : "gamesrv",
+    "name" : "testsrv",
     "debug_mode" : true,
     "log" :
     {
         "level" : 0,
         "power_shell_run" : false,
         "is_dump" : false,
-        "dump_path" : "game.log",
+        "dump_path" : "test.log",
         "dump_file_size" : 4096,
         "dump_threshold" : 32,
         "dump_interval" : 100
@@ -16,11 +16,12 @@
     "reg" :
     {
         "impl" : "github.com/yxframe/goframe.TestSrvRegImpl",
+        "reg_net" : "github.com/yxframe/goframe.RpcNetListener",
         "peer_type" : 2,
         "peer_no" : 1,
         "network" : "tcp",
         "address" : "127.0.0.1",
-        "port" : 3262,
+        "port" : 1234,
         "timeout" : 3,
         "max_read_queue" : 10,
         "max_write_queue" : 10

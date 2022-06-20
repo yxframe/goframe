@@ -60,8 +60,8 @@ func NewBaseServer() *BaseServer {
 		dc:     nil,
 
 		objFactory: yx.NewObjectFactory(),
-		logger:     yx.NewLogger("BaseServer"),
-		ec:         yx.NewErrCatcher("BaseServer"),
+		logger:     nil,
+		ec:         nil,
 	}
 }
 
@@ -102,11 +102,14 @@ func (s *BaseServer) GetName() string {
 }
 
 func (s *BaseServer) Build(cfg *SrvCfg) error {
-	var err error = nil
-	defer s.ec.DeferThrow("Build", &err)
-
 	s.name = cfg.Name
 	s.cfg = cfg
+	tag := "Server(" + s.name + ")"
+	s.logger = yx.NewLogger(tag)
+	s.ec = yx.NewErrCatcher(tag)
+
+	var err error = nil
+	defer s.ec.DeferThrow("Build", &err)
 
 	if cfg.P2pConnCli != nil {
 		err = s.buildP2pConnCli(cfg)
@@ -265,18 +268,19 @@ func (s *BaseServer) Close() {
 	}
 }
 
-func (s *BaseServer) HandleCloseRpcPeer(peerType uint32, peerNo uint32) {
-	// TODO
-}
-func (s *BaseServer) GetRpcHeaderFactory(mark string) p2pnet.PackHeaderFactory {
-	// TODO
-	return nil
-}
+// func (s *BaseServer) HandleCloseRpcPeer(peerType uint32, peerNo uint32) {
+// 	// TODO
+// }
 
-func (s *BaseServer) GetRpcPeerMgr(mark string) p2pnet.PeerMgr {
-	// TODO
-	return nil
-}
+// func (s *BaseServer) GetRpcHeaderFactory(mark string) p2pnet.PackHeaderFactory {
+// 	// TODO
+// 	return nil
+// }
+
+// func (s *BaseServer) GetRpcPeerMgr(mark string) p2pnet.PeerMgr {
+// 	// TODO
+// 	return nil
+// }
 
 func (s *BaseServer) buildP2pConnCli(srvCfg *SrvCfg) error {
 	var err error = nil
@@ -385,7 +389,18 @@ func (s *BaseServer) buildReg(srvCfg *SrvCfg) error {
 		return err
 	}
 
-	regNet := NewRpcNetListener(cfg.MaxReadQue, s)
+	// regNet := NewRpcNetListener(cfg.MaxReadQue, s.rpcNetMgr)
+	obj, err = s.objFactory.CreateObject(cfg.RegNet)
+	if err != nil {
+		return err
+	}
+
+	regNet, ok := obj.(*RpcNetListener)
+	if !ok {
+		err = errors.New("refect type is not RpcNetListener")
+		return err
+	}
+
 	observerNet := NewRegPushNetListener(cfg.MaxReadQue)
 
 	peerMgr := s.p2pConnCli.GetPeerMgr()
