@@ -68,7 +68,7 @@ type HttpSrvCfg struct {
 	Http      *httpsrv.Config `json:"http"`
 }
 
-type SrvCfg struct {
+type SrvBuildCfg struct {
 	PeerType    uint32         `json:"peer_type"`
 	PeerNo      uint32         `json:"peer_no"`
 	Name        string         `json:"name"`
@@ -83,12 +83,16 @@ type SrvCfg struct {
 	Db          *odb.Config
 }
 
-func NewSrvCfg() *SrvCfg {
-	return &SrvCfg{
+func NewSrvBuildCfg() *SrvBuildCfg {
+	return &SrvBuildCfg{
 		// P2pConn: &P2pConnCfg{},
 		// P2pSrv:  &P2pSrvCfg{},
 		// HttpSrv: &HttpSrvCfg{},
 		// RpcSrv:  &rpc.SrvConf{},
 		// Db:      &odb.Config{},
 	}
+}
+
+type SrvCfg interface {
+	GetSrvBuildCfg() *SrvBuildCfg
 }

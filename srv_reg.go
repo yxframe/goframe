@@ -111,7 +111,7 @@ func NewBaseSrvRegImpl(p2pCli *p2pnet.SimpleClient, p RegDataProcessor) *BaseSrv
 		regCli:            nil,
 		dataProcessor:     p,
 		pushListener:      nil,
-		logger:            yx.NewLogger("SrvReg"),
+		logger:            yx.NewLogger("BaseSrvRegImpl"),
 	}
 }
 
@@ -398,7 +398,7 @@ type SrvReg struct {
 func NewSrvReg(impl SrvRegImpl) *SrvReg {
 	return &SrvReg{
 		impl:   impl,
-		logger: yx.NewLogger("SrvRegTemp"),
+		logger: yx.NewLogger("SrvReg"),
 	}
 }
 

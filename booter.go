@@ -34,7 +34,7 @@ func NewBooter() *Booter {
 	}
 }
 
-func (b *Booter) Boot(srv Server, cfg *SrvCfg, bootCfg *BootCfg) error {
+func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg) error {
 	var err error = nil
 
 	// check params
@@ -53,24 +53,25 @@ func (b *Booter) Boot(srv Server, cfg *SrvCfg, bootCfg *BootCfg) error {
 		return err
 	}
 
-	yx.ConfigLogger(cfg.Log)
+	buildCfg := cfg.GetSrvBuildCfg()
+	yx.ConfigLogger(buildCfg.Log)
 	yx.StartLogger()
 	defer yx.StopLogger()
 
 	defer b.ec.Catch("Boot", &err)
 
 	// load config
-	err = b.loadCfg(cfg, bootCfg)
+	err = b.loadCfg(buildCfg, bootCfg)
 	if err != nil {
 		return err
 	}
 
 	// start
-	err = b.start(srv, cfg)
+	err = b.start(srv, buildCfg)
 	return err
 }
 
-func (b *Booter) loadCfg(srvCfg *SrvCfg, bootCfg *BootCfg) error {
+func (b *Booter) loadCfg(srvCfg *SrvBuildCfg, bootCfg *BootCfg) error {
 	var err error = nil
 	defer b.ec.DeferThrow("loadCfg", &err)
 
@@ -127,7 +128,7 @@ func (b *Booter) loadCfg(srvCfg *SrvCfg, bootCfg *BootCfg) error {
 	return nil
 }
 
-func (b *Booter) start(srv Server, cfg *SrvCfg) error {
+func (b *Booter) start(srv Server, cfg *SrvBuildCfg) error {
 	var err error = nil
 	defer b.ec.DeferThrow("start", &err)
 

@@ -19,7 +19,7 @@ import (
 
 type Server interface {
 	GetName() string
-	Build(cfg *SrvCfg) error
+	Build(cfg *SrvBuildCfg) error
 	Start()
 	Stop()
 	Register() error
@@ -31,7 +31,7 @@ var SrvInst Server = nil
 
 type BaseServer struct {
 	name       string
-	cfg        *SrvCfg
+	cfg        *SrvBuildCfg
 	p2pConnCli *p2pnet.SimpleClient
 	p2pConnSrv p2pnet.Server
 	// headerFactory p2pnet.PackHeaderFactory
@@ -101,7 +101,7 @@ func (s *BaseServer) GetName() string {
 	return s.name
 }
 
-func (s *BaseServer) Build(cfg *SrvCfg) error {
+func (s *BaseServer) Build(cfg *SrvBuildCfg) error {
 	s.name = cfg.Name
 	s.cfg = cfg
 	tag := "Server(" + s.name + ")"
@@ -282,7 +282,7 @@ func (s *BaseServer) Close() {
 // 	return nil
 // }
 
-func (s *BaseServer) buildP2pConnCli(srvCfg *SrvCfg) error {
+func (s *BaseServer) buildP2pConnCli(srvCfg *SrvBuildCfg) error {
 	var err error = nil
 	defer s.ec.DeferThrow("buildP2pConnCli", &err)
 
@@ -316,7 +316,7 @@ func (s *BaseServer) buildP2pConnCli(srvCfg *SrvCfg) error {
 	return nil
 }
 
-func (s *BaseServer) buildP2pConnSrv(srvCfg *SrvCfg) error {
+func (s *BaseServer) buildP2pConnSrv(srvCfg *SrvBuildCfg) error {
 	var err error = nil
 	defer s.ec.DeferThrow("buildP2pConn", &err)
 
@@ -376,7 +376,7 @@ func (s *BaseServer) buildP2pConnSrv(srvCfg *SrvCfg) error {
 	return nil
 }
 
-func (s *BaseServer) buildReg(srvCfg *SrvCfg) error {
+func (s *BaseServer) buildReg(srvCfg *SrvBuildCfg) error {
 	var err error = nil
 	defer s.ec.DeferThrow("buildReg", &err)
 
@@ -417,7 +417,7 @@ func (s *BaseServer) buildReg(srvCfg *SrvCfg) error {
 	return nil
 }
 
-func (s *BaseServer) buildRpcSrv(srvCfg *SrvCfg) error {
+func (s *BaseServer) buildRpcSrv(srvCfg *SrvBuildCfg) error {
 	var err error = nil
 	defer s.ec.DeferThrow("buildRpcSrv", &err)
 
@@ -449,16 +449,17 @@ func (s *BaseServer) buildRpcSrv(srvCfg *SrvCfg) error {
 	}
 
 	rpc.Builder.BuildSrv(srv, cfg.RpcSrv)
+	srv.SetDebugMode(srvCfg.IsDebugMode)
 	s.rpcSrv = srv
 	return nil
 }
 
-func (s *BaseServer) buildP2pSrv(srvCfg *SrvCfg) error {
+func (s *BaseServer) buildP2pSrv(srvCfg *SrvBuildCfg) error {
 	// TODO
 	return nil
 }
 
-func (s *BaseServer) buildHttpSrv(srvCfg *SrvCfg) error {
+func (s *BaseServer) buildHttpSrv(srvCfg *SrvBuildCfg) error {
 	var err error = nil
 	defer s.ec.DeferThrow("buildHttpSrv", &err)
 
@@ -503,7 +504,7 @@ func (s *BaseServer) buildHttpSrv(srvCfg *SrvCfg) error {
 	return nil
 }
 
-func (s *BaseServer) buildDb(srvCfg *SrvCfg) error {
+func (s *BaseServer) buildDb(srvCfg *SrvBuildCfg) error {
 	dc := odb.NewDataCenter()
 	odb.Builder.Build(dc, srvCfg.Db)
 	s.dc = dc
