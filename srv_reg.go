@@ -99,6 +99,7 @@ type BaseSrvRegImpl struct {
 	dataProcessor RegDataProcessor
 	pushListener  RegPushListener
 	logger        *yx.Logger
+	ec            *yx.ErrCatcher
 }
 
 func NewBaseSrvRegImpl(p2pCli *p2pnet.SimpleClient, p RegDataProcessor) *BaseSrvRegImpl {
@@ -112,6 +113,7 @@ func NewBaseSrvRegImpl(p2pCli *p2pnet.SimpleClient, p RegDataProcessor) *BaseSrv
 		dataProcessor:     p,
 		pushListener:      nil,
 		logger:            yx.NewLogger("BaseSrvRegImpl"),
+		ec:                yx.NewErrCatcher("BaseSrvRegImpl"),
 	}
 }
 
@@ -127,7 +129,7 @@ func (r *BaseSrvRegImpl) SetNets(regNet *RpcNetListener, observerNet *RegPushNet
 func (r *BaseSrvRegImpl) ConnRegSrv(regCfg *RegCfg) error {
 	addr := regCfg.Address + ":" + strconv.FormatUint(uint64(regCfg.Port), 10)
 	err := r.p2pCli.OpenConn(regCfg.PeerType, regCfg.PeerNo, regCfg.Network, addr, time.Duration(regCfg.Timeout)*time.Second, true)
-	return err
+	return r.ec.Throw("ConnRegSrv", err)
 }
 
 func (r *BaseSrvRegImpl) Init(regCfg *RegCfg) error {
@@ -137,7 +139,7 @@ func (r *BaseSrvRegImpl) Init(regCfg *RegCfg) error {
 	r.logger.I("connect to register server...")
 	err = r.ConnRegSrv(regCfg)
 	if err != nil {
-		return err
+		return r.ec.Throw("Init", err)
 	}
 
 	// start regCli
@@ -147,7 +149,7 @@ func (r *BaseSrvRegImpl) Init(regCfg *RegCfg) error {
 	go r.regCli.ListenDataOprPush(r.handleRegPush)
 
 	err = r.regCli.FetchFuncList()
-	return err
+	return r.ec.Throw("Init", err)
 }
 
 func (r *BaseSrvRegImpl) Stop() {
@@ -159,7 +161,7 @@ func (r *BaseSrvRegImpl) Stop() {
 func (r *BaseSrvRegImpl) Reset() error {
 	err := r.regCli.FetchFuncList()
 	if err != nil {
-		return err
+		return r.ec.Throw("Reset", err)
 	}
 
 	r.clearSrvInfos()
@@ -193,7 +195,7 @@ func (r *BaseSrvRegImpl) FetchSrvInfo(srvType uint32) ([]*RegSrvInfo, error) {
 			return []*RegSrvInfo{}, nil
 		}
 
-		return nil, err
+		return nil, r.ec.Throw("FetchSrvInfo", err)
 	}
 
 	regInfos := r.addSrvInfos(srvInfos)
@@ -210,7 +212,7 @@ func (r *BaseSrvRegImpl) FetchGlobalData(key string) (*RegGlobalData, error) {
 			return EmptyRegGlobalData, nil
 		}
 
-		return nil, err
+		return nil, r.ec.Throw("FetchGlobalData", err)
 	}
 
 	regInfo := r.setGlobalData(key, info)
@@ -393,12 +395,14 @@ func (r *BaseSrvRegImpl) clearGlobalDatas() {
 type SrvReg struct {
 	impl   SrvRegImpl
 	logger *yx.Logger
+	ec     *yx.ErrCatcher
 }
 
 func NewSrvReg(impl SrvRegImpl) *SrvReg {
 	return &SrvReg{
 		impl:   impl,
 		logger: yx.NewLogger("SrvReg"),
+		ec:     yx.NewErrCatcher("SrvReg"),
 	}
 }
 
@@ -407,12 +411,16 @@ func (r *SrvReg) SetNets(regNet *RpcNetListener, observerNet *RegPushNetListener
 }
 
 func (r *SrvReg) Init(regCfg *RegCfg) error {
-	return r.impl.Init(regCfg)
+	err := r.impl.Init(regCfg)
+	return r.ec.Throw("Init", err)
 }
 
 func (r *SrvReg) Start() error {
+	var err error = nil
+	defer r.ec.DeferThrow("Start", &err)
+
 	// Register
-	err := r.impl.Register()
+	err = r.impl.Register()
 	if err != nil {
 		return err
 	}
@@ -437,7 +445,8 @@ func (r *SrvReg) Stop() {
 }
 
 func (r *SrvReg) Register() error {
-	return r.impl.Register()
+	err := r.impl.Register()
+	return r.ec.Throw("Register", err)
 }
 
 func (r *SrvReg) ReconnRegSrv(regCfg *RegCfg) {
@@ -448,6 +457,8 @@ func (r *SrvReg) ReconnRegSrv(regCfg *RegCfg) {
 	err := r.impl.ConnRegSrv(regCfg)
 	if err != nil {
 		r.logger.E("Reconnect register server err: ", err)
+		r.ec.Catch("ReconnRegSrv", &err)
+
 		r.ReconnRegSrv(regCfg)
 		return
 	}
@@ -458,12 +469,14 @@ func (r *SrvReg) ReconnRegSrv(regCfg *RegCfg) {
 	err = r.impl.Reset()
 	if err != nil {
 		r.logger.E("Reset err: ", err)
+		r.ec.Catch("ReconnRegSrv", &err)
 		return
 	}
 
 	err = r.Start()
 	if err != nil {
 		r.logger.E("Start err: ", err)
+		r.ec.Catch("ReconnRegSrv", &err)
 	}
 }
 
