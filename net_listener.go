@@ -47,6 +47,7 @@ func (l *RegPushNetListener) OnP2pNetError(m p2pnet.PeerMgr, peerType uint32, pe
 //     RpcNetListener
 //========================
 type P2pRpcNetMgr interface {
+	HandleOpenRpcPeer(mark string, peerType uint32, peerNo uint32)
 	HandleCloseRpcPeer(mark string, peerType uint32, peerNo uint32)
 	GetRpcHeaderFactory(mark string) p2pnet.PackHeaderFactory
 	GetRpcPeerMgr(mark string) p2pnet.PeerMgr
@@ -70,6 +71,10 @@ func (l *RpcNetListener) isCurRpcPeer(peerType uint32, peerNo uint32) bool {
 }
 
 func (l *RpcNetListener) OnP2pNetOpenPeer(m p2pnet.PeerMgr, peerType uint32, peerNo uint32) {
+	if l.IsSrvNet() || l.isCurRpcPeer(peerType, peerNo) {
+		mark := l.GetReadMark()
+		l.mgr.HandleOpenRpcPeer(mark, peerType, peerNo)
+	}
 }
 
 func (l *RpcNetListener) OnP2pNetClosePeer(m p2pnet.PeerMgr, peerType uint32, peerNo uint32, ipAddr string) {
