@@ -90,9 +90,11 @@ type RegPushListener interface {
 //     BaseSrvRegImpl
 //========================
 type BaseSrvRegImpl struct {
+	watchedSrvTypes   []uint32
 	mapPeerId2SrvInfo map[uint32]*RegSrvInfo
 	lckSrvInfo        *sync.RWMutex
 
+	watchedGDataKeys  []string
 	mapKey2GlobalData map[string]*RegGlobalData
 	lckGlobalData     *sync.RWMutex
 
@@ -108,8 +110,10 @@ type BaseSrvRegImpl struct {
 
 func NewBaseSrvRegImpl(p2pCli *p2pnet.SimpleClient, p RegDataProcessor) *BaseSrvRegImpl {
 	return &BaseSrvRegImpl{
+		watchedSrvTypes:   nil,
 		mapPeerId2SrvInfo: make(map[uint32]*RegSrvInfo),
 		lckSrvInfo:        &sync.RWMutex{},
+		watchedGDataKeys:  nil,
 		mapKey2GlobalData: make(map[string]*RegGlobalData),
 		lckGlobalData:     &sync.RWMutex{},
 		p2pCli:            p2pCli,
@@ -119,6 +123,11 @@ func NewBaseSrvRegImpl(p2pCli *p2pnet.SimpleClient, p RegDataProcessor) *BaseSrv
 		logger:            yx.NewLogger("BaseSrvRegImpl"),
 		ec:                yx.NewErrCatcher("BaseSrvRegImpl"),
 	}
+}
+
+func (r *BaseSrvRegImpl) SetWatchSrvAndData(watchedSrvTypes []uint32, watchedGDataKeys []string) {
+	r.watchedSrvTypes = watchedSrvTypes
+	r.watchedGDataKeys = watchedGDataKeys
 }
 
 func (r *BaseSrvRegImpl) SetPushListener(l RegPushListener) {
@@ -178,10 +187,57 @@ func (r *BaseSrvRegImpl) Register() error {
 }
 
 func (r *BaseSrvRegImpl) Watch() error {
+	r.logger.I("watch...")
+
+	var err error = nil
+	defer r.ec.DeferThrow("Watch", &err)
+
+	regCli := r.GetRegCli()
+	if len(r.watchedSrvTypes) > 0 {
+		for _, srvType := range r.watchedSrvTypes {
+			err = regCli.WatchSrvsByType(srvType)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(r.watchedGDataKeys) > 0 {
+		for _, gDataKey := range r.watchedGDataKeys {
+			err = regCli.WatchGlobalData(gDataKey)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
 func (r *BaseSrvRegImpl) FetchInfos() error {
+	r.logger.I("get info...")
+
+	var err error = nil
+	defer r.ec.DeferThrow("FetchInfos", &err)
+
+	if len(r.watchedSrvTypes) > 0 {
+		for _, srvType := range r.watchedSrvTypes {
+			_, err = r.FetchSrvInfo(srvType)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(r.watchedGDataKeys) > 0 {
+		for _, gDataKey := range r.watchedGDataKeys {
+			_, err = r.FetchGlobalData(gDataKey)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 

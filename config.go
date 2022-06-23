@@ -72,6 +72,7 @@ type SrvBuildCfg struct {
 	PeerType    uint32         `json:"peer_type"`
 	PeerNo      uint32         `json:"peer_no"`
 	Name        string         `json:"name"`
+	TimeZone    int32          `json:"time_zone"`
 	IsDebugMode bool           `json:"debug_mode"`
 	Log         *yx.LogConf    `json:"log"`
 	Reg         *RegCfg        `json:"reg"`

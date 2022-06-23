@@ -2,6 +2,7 @@
     "peer_type" : 1,
     "peer_no" : 1,
     "name" : "testsrv",
+    "time_zone" : 8,
     "debug_mode" : true,
     "log" :
     {
