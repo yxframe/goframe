@@ -61,6 +61,9 @@ var EmptyRegGlobalData = &RegGlobalData{
 //     SrvRegImpl
 //========================
 type SrvRegImpl interface {
+	SetWatchSrvAndData(watchedSrvTypes []uint32, watchedGDataKeys []string)
+	GetWatchSrvTypes() []uint32
+	GetWatchGDataKeys() []string
 	SetNets(regNet *RpcNetListener, observerNet *RegPushNetListener)
 	ConnRegSrv(regCfg *RegCfg) error
 	Init(regCfg *RegCfg) error
@@ -128,6 +131,14 @@ func NewBaseSrvRegImpl(p2pCli *p2pnet.SimpleClient, p RegDataProcessor) *BaseSrv
 func (r *BaseSrvRegImpl) SetWatchSrvAndData(watchedSrvTypes []uint32, watchedGDataKeys []string) {
 	r.watchedSrvTypes = watchedSrvTypes
 	r.watchedGDataKeys = watchedGDataKeys
+}
+
+func (r *BaseSrvRegImpl) GetWatchSrvTypes() []uint32 {
+	return r.watchedSrvTypes
+}
+
+func (r *BaseSrvRegImpl) GetWatchGDataKeys() []string {
+	return r.watchedGDataKeys
 }
 
 func (r *BaseSrvRegImpl) SetPushListener(l RegPushListener) {
