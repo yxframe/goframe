@@ -6,6 +6,7 @@ package goframe
 
 import (
 	"encoding/json"
+	"errors"
 	"strconv"
 	"sync"
 	"time"
@@ -13,6 +14,10 @@ import (
 	"github.com/yxlib/p2pnet"
 	"github.com/yxlib/reg"
 	"github.com/yxlib/yx"
+)
+
+var (
+	ErrNoDataProcessor = errors.New("no data processor")
 )
 
 const (
@@ -45,6 +50,12 @@ type RegSrvInfo struct {
 	SrvType uint32
 	SrvNo   uint32
 	Data    RegInfo
+}
+
+var EmptyRegSrvInfo = &RegSrvInfo{
+	SrvType: 0,
+	SrvNo:   0,
+	Data:    nil,
 }
 
 type RegGlobalData struct {
@@ -233,7 +244,7 @@ func (r *BaseSrvRegImpl) FetchInfos() error {
 
 	if len(r.watchedSrvTypes) > 0 {
 		for _, srvType := range r.watchedSrvTypes {
-			_, err = r.FetchSrvInfo(srvType)
+			_, err = r.FetchSrvInfos(srvType)
 			if err != nil {
 				return err
 			}
@@ -256,8 +267,8 @@ func (r *BaseSrvRegImpl) GetRegCli() *reg.Client {
 	return r.regCli
 }
 
-func (r *BaseSrvRegImpl) FetchSrvInfo(srvType uint32) ([]*RegSrvInfo, error) {
-	r.logger.I("get server info...")
+func (r *BaseSrvRegImpl) FetchSrvInfos(srvType uint32) ([]*RegSrvInfo, error) {
+	r.logger.I("fetch server infos...")
 	r.logger.I("srvType = ", srvType)
 
 	srvInfos, err := r.regCli.GetSrvsByType(srvType)
@@ -266,15 +277,36 @@ func (r *BaseSrvRegImpl) FetchSrvInfo(srvType uint32) ([]*RegSrvInfo, error) {
 			return []*RegSrvInfo{}, nil
 		}
 
-		return nil, r.ec.Throw("FetchSrvInfo", err)
+		return nil, r.ec.Throw("FetchSrvInfos", err)
 	}
 
 	regInfos := r.addSrvInfos(srvInfos)
 	return regInfos, nil
 }
 
+func (r *BaseSrvRegImpl) FetchSrvInfo(srvType uint32, srvNo uint32) (*RegSrvInfo, error) {
+	r.logger.I("fetch server info...")
+	r.logger.I("srvType = ", srvType)
+
+	srvInfo, err := r.regCli.GetSrv(srvType, srvNo)
+	if err != nil {
+		if err == reg.ErrRegCallFailed {
+			return EmptyRegSrvInfo, nil
+		}
+
+		return nil, r.ec.Throw("FetchSrvInfo", err)
+	}
+
+	regInfo, err := r.addSrvInfo(srvInfo)
+	if err != nil {
+		return nil, r.ec.Throw("FetchSrvInfo", err)
+	}
+
+	return regInfo, nil
+}
+
 func (r *BaseSrvRegImpl) FetchGlobalData(key string) (*RegGlobalData, error) {
-	r.logger.I("get global data info...")
+	r.logger.I("fetch global data info...")
 	r.logger.I("key = ", key)
 
 	info, err := r.regCli.GetGlobalData(key)
@@ -392,14 +424,14 @@ func (r *BaseSrvRegImpl) addSrvInfos(srvInfos []*reg.SrvInfo) []*RegSrvInfo {
 	return regInfos
 }
 
-func (r *BaseSrvRegImpl) addSrvInfo(info *reg.SrvInfo) {
+func (r *BaseSrvRegImpl) addSrvInfo(info *reg.SrvInfo) (*RegSrvInfo, error) {
 	if r.dataProcessor == nil {
-		return
+		return nil, ErrNoDataProcessor
 	}
 
 	regInfo, err := r.dataProcessor.ProcessRegSrvInfo(info)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	r.lckSrvInfo.Lock()
@@ -407,6 +439,7 @@ func (r *BaseSrvRegImpl) addSrvInfo(info *reg.SrvInfo) {
 
 	peerId := r.getPeerId(info.SrvType, info.SrvNo)
 	r.mapPeerId2SrvInfo[peerId] = regInfo
+	return regInfo, nil
 }
 
 func (r *BaseSrvRegImpl) removeSrvInfo(peerType uint32, peerNo uint32) {
