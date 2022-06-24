@@ -268,20 +268,6 @@ func (s *BaseServer) Close() {
 	}
 }
 
-// func (s *BaseServer) HandleCloseRpcPeer(peerType uint32, peerNo uint32) {
-// 	// TODO
-// }
-
-// func (s *BaseServer) GetRpcHeaderFactory(mark string) p2pnet.PackHeaderFactory {
-// 	// TODO
-// 	return nil
-// }
-
-// func (s *BaseServer) GetRpcPeerMgr(mark string) p2pnet.PeerMgr {
-// 	// TODO
-// 	return nil
-// }
-
 func (s *BaseServer) buildP2pConnCli(srvCfg *SrvBuildCfg) error {
 	var err error = nil
 	defer s.ec.DeferThrow("buildP2pConnCli", &err)
@@ -455,7 +441,38 @@ func (s *BaseServer) buildRpcSrv(srvCfg *SrvBuildCfg) error {
 }
 
 func (s *BaseServer) buildP2pSrv(srvCfg *SrvBuildCfg) error {
-	// TODO
+	var err error = nil
+	defer s.ec.DeferThrow("buildP2pSrv", &err)
+
+	cfg := srvCfg.P2pSrv
+
+	// net
+	obj, err := s.objFactory.CreateObject(cfg.SrvNet)
+	if err != nil {
+		return err
+	}
+
+	n, ok := obj.(server.Net)
+	if !ok {
+		err = errors.New("refect type is not server.Net")
+		return err
+	}
+
+	// peerMgr := s.p2pConnSrv.GetPeerMgr()
+	// peerMgr.AddListener(n)
+
+	// server
+	srv := server.NewBaseServer("p2psrv", n)
+	if cfg.InterType == INTER_TYPE_JSON {
+		srv.AddGlobalInterceptor(&server.JsonInterceptor{})
+	} else if cfg.InterType == INTER_TYPE_PROTO {
+		srv.AddGlobalInterceptor(&PbInterceptor{})
+	}
+
+	srv.SetDebugMode(srvCfg.IsDebugMode)
+
+	server.Builder.Build(srv, cfg.Server)
+	s.srv = srv
 	return nil
 }
 

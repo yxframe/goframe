@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	INTER_TYPE_PROTO = iota
+	INTER_TYPE_PROTO = iota + 1
 	INTER_TYPE_JSON
 )
 
