@@ -281,6 +281,12 @@ func (r *BaseSrvRegImpl) FetchSrvInfos(srvType uint32) ([]*RegSrvInfo, error) {
 	}
 
 	regInfos := r.addSrvInfos(srvInfos)
+	if r.pushListener != nil {
+		for _, regInfo := range regInfos {
+			r.pushListener.OnSrvInfoUpdatePush(regInfo.SrvType, regInfo.SrvNo)
+		}
+	}
+
 	return regInfos, nil
 }
 
