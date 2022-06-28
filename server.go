@@ -38,7 +38,7 @@ type BaseServer struct {
 	srvReg *SrvReg
 	rpcSrv rpc.Server
 	http   *httpsrv.Server
-	srv    server.Server
+	srv    *server.BaseServer
 	dc     *odb.DataCenter
 
 	objFactory *yx.ObjectFactory
@@ -89,7 +89,7 @@ func (s *BaseServer) GetHttpSrv() *httpsrv.Server {
 	return s.http
 }
 
-func (s *BaseServer) GetSrv() server.Server {
+func (s *BaseServer) GetSrv() *server.BaseServer {
 	return s.srv
 }
 
