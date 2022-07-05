@@ -34,7 +34,7 @@ func NewBooter() *Booter {
 	}
 }
 
-func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, registerCb func() error) error {
+func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, registerSuccCb func() error) error {
 	var err error = nil
 
 	// check params
@@ -67,7 +67,7 @@ func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, registerCb func(
 	}
 
 	// start
-	err = b.start(srv, buildCfg, registerCb)
+	err = b.start(srv, buildCfg, registerSuccCb)
 	return err
 }
 
@@ -128,7 +128,7 @@ func (b *Booter) loadCfg(srvCfg *SrvBuildCfg, bootCfg *BootCfg) error {
 	return nil
 }
 
-func (b *Booter) start(srv Server, cfg *SrvBuildCfg, registerCb func() error) error {
+func (b *Booter) start(srv Server, cfg *SrvBuildCfg, registerSuccCb func() error) error {
 	var err error = nil
 	defer b.ec.DeferThrow("start", &err)
 
@@ -150,8 +150,8 @@ func (b *Booter) start(srv Server, cfg *SrvBuildCfg, registerCb func() error) er
 		return err
 	}
 
-	if registerCb != nil {
-		err = registerCb()
+	if registerSuccCb != nil {
+		err = registerSuccCb()
 		if err != nil {
 			return err
 		}
