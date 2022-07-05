@@ -34,7 +34,7 @@ func NewBooter() *Booter {
 	}
 }
 
-func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg) error {
+func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, registerCb func() error) error {
 	var err error = nil
 
 	// check params
@@ -67,7 +67,7 @@ func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg) error {
 	}
 
 	// start
-	err = b.start(srv, buildCfg)
+	err = b.start(srv, buildCfg, registerCb)
 	return err
 }
 
@@ -128,7 +128,7 @@ func (b *Booter) loadCfg(srvCfg *SrvBuildCfg, bootCfg *BootCfg) error {
 	return nil
 }
 
-func (b *Booter) start(srv Server, cfg *SrvBuildCfg) error {
+func (b *Booter) start(srv Server, cfg *SrvBuildCfg, registerCb func() error) error {
 	var err error = nil
 	defer b.ec.DeferThrow("start", &err)
 
@@ -150,13 +150,24 @@ func (b *Booter) start(srv Server, cfg *SrvBuildCfg) error {
 		return err
 	}
 
+	if registerCb != nil {
+		err = registerCb()
+		if err != nil {
+			return err
+		}
+	}
+
 	// listen
 	name := srv.GetName()
-	b.logger.I("################ " + name + " Server Start ################")
+	b.logger.I("###########################################################")
+	b.logger.I("#                " + name + " Server Start")
+	b.logger.I("###########################################################")
 
 	err = srv.Listen()
 
-	b.logger.I("################ " + name + " Server Stop ################")
+	b.logger.I("===========================================================")
+	b.logger.I("=                " + name + " Server Stop")
+	b.logger.I("===========================================================")
 
 	return err
 }
