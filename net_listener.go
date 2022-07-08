@@ -59,13 +59,15 @@ type P2pRpcNetMgr interface {
 
 type RpcNetListener struct {
 	*rpc.BaseNet
-	mgr P2pRpcNetMgr
+	mgr    P2pRpcNetMgr
+	bShare bool
 }
 
-func NewRpcNetListener(maxReadQue uint32, mgr P2pRpcNetMgr) *RpcNetListener {
+func NewRpcNetListener(maxReadQue uint32, mgr P2pRpcNetMgr, bShare bool) *RpcNetListener {
 	return &RpcNetListener{
 		BaseNet: rpc.NewBaseNet(maxReadQue),
 		mgr:     mgr,
+		bShare:  bShare,
 	}
 }
 
@@ -92,7 +94,7 @@ func (l *RpcNetListener) OnP2pNetClosePeer(m p2pnet.PeerMgr, peerType uint32, pe
 		return
 	}
 
-	if l.GetReadMark() != reg.REG_MARK {
+	if l.GetReadMark() != reg.REG_MARK && !l.bShare {
 		m.RemoveListener(l)
 	}
 
