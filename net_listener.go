@@ -6,6 +6,7 @@ package goframe
 
 import (
 	"github.com/yxlib/p2pnet"
+	"github.com/yxlib/reg"
 	"github.com/yxlib/rpc"
 )
 
@@ -58,20 +59,13 @@ type P2pRpcNetMgr interface {
 
 type RpcNetListener struct {
 	*rpc.BaseNet
-	mgr    P2pRpcNetMgr
-	bShare bool
+	mgr P2pRpcNetMgr
 }
 
-//
-// @param maxReadQue, max size of read queue.
-// @param mgr.
-// @param bShare, reg and server should be true.
-// @return *RpcNetListener.
-func NewRpcNetListener(maxReadQue uint32, mgr P2pRpcNetMgr, bShare bool) *RpcNetListener {
+func NewRpcNetListener(maxReadQue uint32, mgr P2pRpcNetMgr) *RpcNetListener {
 	return &RpcNetListener{
 		BaseNet: rpc.NewBaseNet(maxReadQue),
 		mgr:     mgr,
-		bShare:  bShare,
 	}
 }
 
@@ -88,15 +82,20 @@ func (l *RpcNetListener) OnP2pNetOpenPeer(m p2pnet.PeerMgr, peerType uint32, pee
 }
 
 func (l *RpcNetListener) OnP2pNetClosePeer(m p2pnet.PeerMgr, peerType uint32, peerNo uint32, ipAddr string) {
-	if !l.IsSrvNet() && !l.isCurRpcPeer(peerType, peerNo) {
+	mark := l.GetReadMark()
+	if l.IsSrvNet() {
+		l.mgr.HandleCloseRpcPeer(mark, peerType, peerNo)
 		return
 	}
 
-	if !l.IsSrvNet() && !l.bShare {
+	if !l.isCurRpcPeer(peerType, peerNo) {
+		return
+	}
+
+	if l.GetReadMark() != reg.REG_MARK {
 		m.RemoveListener(l)
 	}
 
-	mark := l.GetReadMark()
 	l.mgr.HandleCloseRpcPeer(mark, peerType, peerNo)
 }
 
