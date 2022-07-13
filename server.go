@@ -296,7 +296,7 @@ func (s *BaseServer) buildP2pConnCli(srvCfg *SrvBuildCfg) error {
 
 	logNet := p2pnet.NewLogNetListener()
 	peerMgr := p2pnet.NewBasePeerMgr(srvCfg.PeerType, srvCfg.PeerNo)
-	peerMgr.AddListener(logNet)
+	peerMgr.AddTopPriorityListener(logNet)
 
 	s.p2pConnCli = p2pnet.NewSimpleClient(cli, peerMgr, headerFactory, cfg.MaxReadQue, cfg.MaxWriteQue)
 	return nil
@@ -311,7 +311,7 @@ func (s *BaseServer) buildP2pConnSrv(srvCfg *SrvBuildCfg) error {
 
 	logNet := p2pnet.NewLogNetListener()
 	peerMgr := p2pnet.NewBasePeerMgr(srvCfg.PeerType, srvCfg.PeerNo)
-	peerMgr.AddListener(logNet)
+	peerMgr.AddTopPriorityListener(logNet)
 
 	// if len(cfg.NetListeners) > 0 {
 	// 	for _, name := range cfg.NetListeners {
@@ -394,8 +394,8 @@ func (s *BaseServer) buildReg(srvCfg *SrvBuildCfg) error {
 	observerNet := NewRegPushNetListener(cfg.MaxReadQue)
 
 	peerMgr := s.p2pConnCli.GetPeerMgr()
-	peerMgr.AddListener(regNet)
-	peerMgr.AddListener(observerNet)
+	peerMgr.AddTopPriorityListener(regNet)
+	peerMgr.AddTopPriorityListener(observerNet)
 
 	srvReg := NewSrvReg(impl)
 	srvReg.SetNets(regNet, observerNet)
@@ -431,7 +431,7 @@ func (s *BaseServer) buildRpcSrv(srvCfg *SrvBuildCfg) error {
 			peerMgr = s.p2pConnCli.GetPeerMgr()
 		}
 
-		peerMgr.AddListener(rpcSrvNet)
+		peerMgr.AddTopPriorityListener(rpcSrvNet)
 	}
 
 	rpc.Builder.BuildSrv(srv, cfg.RpcSrv)
