@@ -93,7 +93,7 @@ func (l *RpcNetListener) OnP2pNetClosePeer(m p2pnet.PeerMgr, peerType uint32, pe
 	}
 
 	if l.GetReadMark() != reg.REG_MARK {
-		m.RemoveListener(l)
+		m.RemoveTopPriorityListener(l)
 	}
 
 	l.mgr.HandleCloseRpcPeer(mark, peerType, peerNo)
