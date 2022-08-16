@@ -7,6 +7,7 @@ package goframe
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/yxlib/httpsrv"
@@ -15,6 +16,10 @@ import (
 	"github.com/yxlib/rpc"
 	"github.com/yxlib/server"
 	"github.com/yxlib/yx"
+)
+
+const (
+	HTTP_SHUTDOWN_TIME_OUT = 3 * time.Second
 )
 
 type Server interface {
@@ -185,6 +190,10 @@ func (s *BaseServer) Start() {
 	if s.dc != nil {
 		s.dc.Start(time.Minute*time.Duration(s.cfg.Db.SaveIntv), time.Minute*time.Duration(s.cfg.Db.ClearIntv))
 	}
+
+	if strings.TrimSpace(s.cfg.ShutdownFile) != "" {
+		go s.checkShutdownFile()
+	}
 }
 
 func (s *BaseServer) Stop() {
@@ -265,6 +274,10 @@ func (s *BaseServer) Listen() error {
 func (s *BaseServer) Close() {
 	if s.p2pConnSrv != nil {
 		s.p2pConnSrv.Close()
+	}
+
+	if s.http != nil {
+		s.http.Shutdown(HTTP_SHUTDOWN_TIME_OUT)
 	}
 }
 
@@ -526,4 +539,19 @@ func (s *BaseServer) buildDb(srvCfg *SrvBuildCfg) error {
 	odb.Builder.Build(dc, srvCfg.Db)
 	s.dc = dc
 	return nil
+}
+
+func (s *BaseServer) checkShutdownFile() {
+	ticker := time.NewTicker(time.Duration(s.cfg.ShutdownCheckIntv) * time.Second)
+
+	for {
+		<-ticker.C
+		ok, _ := yx.IsFileExist(s.cfg.ShutdownFile)
+		if ok {
+			s.Close()
+			break
+		}
+	}
+
+	ticker.Stop()
 }

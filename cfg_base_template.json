@@ -4,6 +4,8 @@
     "name" : "testsrv",
     "time_zone" : 8,
     "debug_mode" : true,
+    "shutdown_file" : "testsrv.shutdown",
+    "shutdown_check_intv_sec" : 120,
     "log" :
     {
         "level" : 0,

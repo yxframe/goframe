@@ -82,6 +82,9 @@ type SrvBuildCfg struct {
 	P2pSrv      *P2pSrvCfg
 	HttpSrv     *HttpSrvCfg
 	Db          *odb.Config
+
+	ShutdownFile      string `json:"shutdown_file"`
+	ShutdownCheckIntv int64  `json:"shutdown_check_intv_sec"`
 }
 
 func NewSrvBuildCfg() *SrvBuildCfg {
