@@ -34,7 +34,7 @@ func NewBooter() *Booter {
 	}
 }
 
-func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, registerSuccCb func() error) error {
+func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, buildSuccCb func() error, registerSuccCb func() error) error {
 	var err error = nil
 
 	// check params
@@ -67,7 +67,7 @@ func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, registerSuccCb f
 	}
 
 	// start
-	err = b.start(srv, buildCfg, registerSuccCb)
+	err = b.start(srv, buildCfg, buildSuccCb, registerSuccCb)
 	return err
 }
 
@@ -128,7 +128,7 @@ func (b *Booter) loadCfg(srvCfg *SrvBuildCfg, bootCfg *BootCfg) error {
 	return nil
 }
 
-func (b *Booter) start(srv Server, cfg *SrvBuildCfg, registerSuccCb func() error) error {
+func (b *Booter) start(srv Server, cfg *SrvBuildCfg, buildSuccCb func() error, registerSuccCb func() error) error {
 	var err error = nil
 	defer b.ec.DeferThrow("start", &err)
 
@@ -138,6 +138,13 @@ func (b *Booter) start(srv Server, cfg *SrvBuildCfg, registerSuccCb func() error
 	err = srv.Build(cfg)
 	if err != nil {
 		return err
+	}
+
+	if buildSuccCb != nil {
+		err = buildSuccCb()
+		if err != nil {
+			return err
+		}
 	}
 
 	// start
