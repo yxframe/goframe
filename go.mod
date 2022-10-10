@@ -3,7 +3,7 @@ module github.com/yxframe/goframe
 go 1.16
 
 require (
-	github.com/yxlib/httpsrv v0.2.7
+	github.com/yxlib/httpsrv v0.2.10
 	github.com/yxlib/odb v0.2.8
 	github.com/yxlib/p2pnet v0.2.18
 	github.com/yxlib/reg v0.2.15
