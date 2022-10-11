@@ -70,6 +70,8 @@ func NewBaseServer() *BaseServer {
 	}
 }
 
+var DefaultServer = NewBaseServer()
+
 func (s *BaseServer) GetObjFactory() *yx.ObjectFactory {
 	return s.objFactory
 }
