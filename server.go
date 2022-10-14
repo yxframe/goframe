@@ -41,10 +41,10 @@ type BaseServer struct {
 	p2pConnSrv p2pnet.Server
 	// headerFactory p2pnet.PackHeaderFactory
 	srvReg *SrvReg
-	rpcSrv rpc.Server
-	http   *httpsrv.Server
-	srv    *server.BaseServer
-	dc     *odb.DataCenter
+	// rpcSrv rpc.Server
+	http *httpsrv.Server
+	srv  *server.BaseServer
+	dc   *odb.DataCenter
 
 	objFactory *yx.ObjectFactory
 	logger     *yx.Logger
@@ -59,10 +59,10 @@ func NewBaseServer() *BaseServer {
 		p2pConnSrv: nil,
 		// headerFactory: nil,
 		srvReg: nil,
-		rpcSrv: nil,
-		http:   nil,
-		srv:    nil,
-		dc:     nil,
+		// rpcSrv: nil,
+		http: nil,
+		srv:  nil,
+		dc:   nil,
 
 		objFactory: yx.NewObjectFactory(),
 		logger:     nil,
@@ -88,9 +88,9 @@ func (s *BaseServer) GetSrvReg() *SrvReg {
 	return s.srvReg
 }
 
-func (s *BaseServer) GetRpcSrv() rpc.Server {
-	return s.rpcSrv
-}
+// func (s *BaseServer) GetRpcSrv() rpc.Server {
+// 	return s.rpcSrv
+// }
 
 func (s *BaseServer) GetHttpSrv() *httpsrv.Server {
 	return s.http
@@ -181,9 +181,10 @@ func (s *BaseServer) Start() {
 		go peerMgr.Start()
 	}
 
-	if s.rpcSrv != nil {
-		go s.rpcSrv.Start()
-	}
+	// if s.rpcSrv != nil {
+	// 	go s.rpcSrv.Start()
+	// }
+	rpc.Server.Start()
 
 	if s.srv != nil {
 		go s.srv.Start()
@@ -213,9 +214,10 @@ func (s *BaseServer) Stop() {
 		s.srvReg.Stop()
 	}
 
-	if s.rpcSrv != nil {
-		s.rpcSrv.Stop()
-	}
+	// if s.rpcSrv != nil {
+	// 	s.rpcSrv.Stop()
+	// }
+	rpc.Server.Stop()
 
 	if s.srv != nil {
 		s.srv.Stop()
@@ -425,33 +427,53 @@ func (s *BaseServer) buildRpcSrv(srvCfg *SrvBuildCfg) error {
 	cfg := srvCfg.RpcSrv
 
 	// server
-	obj, err := s.objFactory.CreateObject(cfg.Srv)
-	if err != nil {
-		return err
+	// obj, err := s.objFactory.CreateObject(cfg.Srv)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// srv, ok := obj.(rpc.Server)
+	// if !ok {
+	// 	err = errors.New("refect type is not rpc.Server")
+	// 	return err
+	// }
+
+	// net := srv.GetRpcNet()
+	// rpcSrvNet, ok := net.(*RpcNetListener)
+	// if ok {
+	// 	var peerMgr p2pnet.PeerMgr = nil
+	// 	if cfg.IsUseSrvConn {
+	// 		peerMgr = s.p2pConnSrv.GetPeerMgr()
+	// 	} else {
+	// 		peerMgr = s.p2pConnCli.GetPeerMgr()
+	// 	}
+
+	// 	peerMgr.AddTopPriorityListener(rpcSrvNet)
+	// }
+
+	// rpc.Builder.BuildSrv(srv, cfg.RpcSrv)
+	// srv.SetDebugMode(srvCfg.IsDebugMode)
+	// s.rpcSrv = srv
+
+	var peerMgr p2pnet.PeerMgr = nil
+	if cfg.IsUseSrvConn {
+		peerMgr = s.p2pConnSrv.GetPeerMgr()
+	} else {
+		peerMgr = s.p2pConnCli.GetPeerMgr()
 	}
 
-	srv, ok := obj.(rpc.Server)
-	if !ok {
-		err = errors.New("refect type is not rpc.Server")
-		return err
-	}
-
-	net := srv.GetRpcNet()
-	rpcSrvNet, ok := net.(*RpcNetListener)
-	if ok {
-		var peerMgr p2pnet.PeerMgr = nil
-		if cfg.IsUseSrvConn {
-			peerMgr = s.p2pConnSrv.GetPeerMgr()
-		} else {
-			peerMgr = s.p2pConnCli.GetPeerMgr()
+	rpc.Builder.BuildSrv(cfg.RpcSrv)
+	services := rpc.Server.GetAllServices()
+	for _, srv := range services {
+		net := srv.GetRpcNet()
+		rpcSrvNet, ok := net.(*RpcNetListener)
+		if ok {
+			peerMgr.AddTopPriorityListener(rpcSrvNet)
 		}
 
-		peerMgr.AddTopPriorityListener(rpcSrvNet)
+		srv.SetDebugMode(srvCfg.IsDebugMode)
 	}
 
-	rpc.Builder.BuildSrv(srv, cfg.RpcSrv)
-	srv.SetDebugMode(srvCfg.IsDebugMode)
-	s.rpcSrv = srv
 	return nil
 }
 

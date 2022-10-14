@@ -51,10 +51,10 @@ func (l *RegPushNetListener) OnP2pNetError(m p2pnet.PeerMgr, peerType uint32, pe
 //     RpcNetListener
 //========================
 type P2pRpcNetMgr interface {
-	HandleOpenRpcPeer(mark string, peerType uint32, peerNo uint32)
-	HandleCloseRpcPeer(mark string, peerType uint32, peerNo uint32)
-	GetRpcHeaderFactory(mark string) p2pnet.PackHeaderFactory
-	GetRpcPeerMgr(mark string) p2pnet.PeerMgr
+	HandleOpenRpcPeer(peerType uint32, peerNo uint32, service string)
+	HandleCloseRpcPeer(peerType uint32, peerNo uint32, service string)
+	GetRpcHeaderFactory(peerType uint32, peerNo uint32, service string) p2pnet.PackHeaderFactory
+	GetRpcPeerMgr(peerType uint32, peerNo uint32, service string) p2pnet.PeerMgr
 }
 
 type RpcNetListener struct {
@@ -75,16 +75,16 @@ func (l *RpcNetListener) isCurRpcPeer(peerType uint32, peerNo uint32) bool {
 }
 
 func (l *RpcNetListener) OnP2pNetOpenPeer(m p2pnet.PeerMgr, peerType uint32, peerNo uint32) {
-	if l.IsSrvNet() || l.isCurRpcPeer(peerType, peerNo) {
-		mark := l.GetReadMark()
-		l.mgr.HandleOpenRpcPeer(mark, peerType, peerNo)
+	if l.IsServerNet() || l.isCurRpcPeer(peerType, peerNo) {
+		service := l.GetService()
+		l.mgr.HandleOpenRpcPeer(peerType, peerNo, service)
 	}
 }
 
 func (l *RpcNetListener) OnP2pNetClosePeer(m p2pnet.PeerMgr, peerType uint32, peerNo uint32, ipAddr string) {
-	mark := l.GetReadMark()
-	if l.IsSrvNet() {
-		l.mgr.HandleCloseRpcPeer(mark, peerType, peerNo)
+	service := l.GetService()
+	if l.IsServerNet() {
+		l.mgr.HandleCloseRpcPeer(peerType, peerNo, service)
 		return
 	}
 
@@ -92,11 +92,11 @@ func (l *RpcNetListener) OnP2pNetClosePeer(m p2pnet.PeerMgr, peerType uint32, pe
 		return
 	}
 
-	if l.GetReadMark() != reg.REG_MARK {
+	if l.GetService() != reg.REG_SRV {
 		m.RemoveTopPriorityListener(l)
 	}
 
-	l.mgr.HandleCloseRpcPeer(mark, peerType, peerNo)
+	l.mgr.HandleCloseRpcPeer(peerType, peerNo, service)
 }
 
 func (l *RpcNetListener) OnP2pNetReadPack(m p2pnet.PeerMgr, pack *p2pnet.Pack, recvPeerType uint32, recvPeerNo uint32) bool {
@@ -117,26 +117,26 @@ func (l *RpcNetListener) OnP2pNetReadPack(m p2pnet.PeerMgr, pack *p2pnet.Pack, r
 func (l *RpcNetListener) OnP2pNetError(m p2pnet.PeerMgr, peerType uint32, peerNo uint32, err error) {
 }
 
-func (l *RpcNetListener) WriteRpcPack(payload []rpc.ByteArray, dstPeerType uint32, dstPeerNo uint32) error {
-	mark := l.GetReadMark()
+func (l *RpcNetListener) WriteRpcPack(dstPeerType uint32, dstPeerNo uint32, payload ...[]byte) error {
+	service := l.GetService()
 
-	factory := l.mgr.GetRpcHeaderFactory(mark)
+	factory := l.mgr.GetRpcHeaderFactory(dstPeerType, dstPeerNo, service)
 	h := factory.CreateHeader()
 	pack := p2pnet.NewPack(h)
 	pack.AddFrames(payload)
 	pack.UpdatePayloadLen()
 
-	mgr := l.mgr.GetRpcPeerMgr(mark)
+	mgr := l.mgr.GetRpcPeerMgr(dstPeerType, dstPeerNo, service)
 	return mgr.SendByPeer(pack, dstPeerType, dstPeerNo)
 }
 
 func canHandleRpcPack(n rpc.Net, pack *p2pnet.Pack, recvPeerType uint32, recvPeerNo uint32) bool {
-	mark := n.GetReadMark()
+	mark := n.GetService()
 	if !rpc.CheckRpcMark([]byte(mark), pack.Payload[0]) {
 		return false
 	}
 
-	if n.IsSrvNet() {
+	if n.IsServerNet() {
 		return true
 	}
 
