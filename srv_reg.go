@@ -181,7 +181,7 @@ func (r *BaseSrvRegImpl) Init(regCfg *RegCfg) error {
 	r.logger.I("fetch function list...")
 	r.regCli = reg.NewClient(r.regNet, r.observerNet, regCfg.PeerType, regCfg.PeerNo)
 	r.regCli.Start()
-	go r.regCli.ListenDataOprPush(r.handleRegPush)
+	r.regCli.ListenDataOprPush(r.handleRegPush)
 
 	err = r.regCli.FetchFuncList()
 	return r.ec.Throw("Init", err)
@@ -560,6 +560,20 @@ func (r *SrvReg) Register() error {
 }
 
 func (r *SrvReg) ReconnRegSrv(regCfg *RegCfg) {
+	var err error = nil
+
+	for {
+		err = r.reconnRegSrvImpl(regCfg)
+		if err != nil {
+			r.ec.Catch("ReconnRegSrv", &err)
+			continue
+		}
+
+		break
+	}
+}
+
+func (r *SrvReg) reconnRegSrvImpl(regCfg *RegCfg) error {
 	<-time.After(CONN_REG_SRV_DELAY)
 
 	r.logger.I("Reconnect register server...")
@@ -567,10 +581,7 @@ func (r *SrvReg) ReconnRegSrv(regCfg *RegCfg) {
 	err := r.impl.ConnRegSrv(regCfg)
 	if err != nil {
 		r.logger.E("Reconnect register server err: ", err)
-		r.ec.Catch("ReconnRegSrv", &err)
-
-		r.ReconnRegSrv(regCfg)
-		return
+		return err
 	}
 
 	r.logger.I("Reconnect register server success !!")
@@ -579,15 +590,16 @@ func (r *SrvReg) ReconnRegSrv(regCfg *RegCfg) {
 	err = r.impl.Reset()
 	if err != nil {
 		r.logger.E("Reset err: ", err)
-		r.ec.Catch("ReconnRegSrv", &err)
-		return
+		return err
 	}
 
 	err = r.Start()
 	if err != nil {
 		r.logger.E("Start err: ", err)
-		r.ec.Catch("ReconnRegSrv", &err)
+		return err
 	}
+
+	return nil
 }
 
 func (r *SrvReg) GetSrvInfo(peerType uint32, peerNo uint32) (*RegSrvInfo, bool) {
