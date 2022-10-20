@@ -41,7 +41,7 @@ type BaseServer struct {
 	p2pConnCli *p2pnet.SimpleClient
 	p2pConnSrv p2pnet.Server
 	// headerFactory p2pnet.PackHeaderFactory
-	srvReg *SrvReg
+	regCenter *RegCenter
 	// rpcSrv rpc.Server
 	http *httpsrv.Server
 	srv  *server.BaseServer
@@ -59,7 +59,7 @@ func NewBaseServer() *BaseServer {
 		p2pConnCli: nil,
 		p2pConnSrv: nil,
 		// headerFactory: nil,
-		srvReg: nil,
+		regCenter: nil,
 		// rpcSrv: nil,
 		http: nil,
 		srv:  nil,
@@ -85,8 +85,8 @@ func (s *BaseServer) GetP2pConnSrv() p2pnet.Server {
 	return s.p2pConnSrv
 }
 
-func (s *BaseServer) GetSrvReg() *SrvReg {
-	return s.srvReg
+func (s *BaseServer) GetRegCenter() *RegCenter {
+	return s.regCenter
 }
 
 // func (s *BaseServer) GetRpcSrv() rpc.Server {
@@ -211,8 +211,8 @@ func (s *BaseServer) Stop() {
 		peerMgr.Stop()
 	}
 
-	if s.srvReg != nil {
-		s.srvReg.Stop()
+	if s.regCenter != nil {
+		s.regCenter.Stop()
 	}
 
 	// if s.rpcSrv != nil {
@@ -232,19 +232,19 @@ func (s *BaseServer) Stop() {
 }
 
 func (s *BaseServer) Register() error {
-	if s.srvReg == nil {
+	if s.regCenter == nil {
 		return nil
 	}
 
 	var err error = nil
 	defer s.ec.DeferThrow("Register", &err)
 
-	err = s.srvReg.Init(s.cfg.Reg)
+	err = s.regCenter.Init(s.cfg.Reg)
 	if err != nil {
 		return err
 	}
 
-	err = s.srvReg.Start()
+	err = s.regCenter.Start()
 	return err
 }
 
@@ -411,7 +411,7 @@ func (s *BaseServer) buildReg(srvCfg *SrvBuildCfg) error {
 		return err
 	}
 
-	impl, ok := obj.(SrvRegImpl)
+	impl, ok := obj.(RegCenterImpl)
 	if !ok {
 		err = errors.New("refect type is not SrvRegImpl")
 		return err
@@ -435,9 +435,9 @@ func (s *BaseServer) buildReg(srvCfg *SrvBuildCfg) error {
 	peerMgr.AddTopPriorityListener(regNet)
 	peerMgr.AddTopPriorityListener(observerNet)
 
-	srvReg := NewSrvReg(impl)
-	srvReg.SetNets(regNet, observerNet)
-	s.srvReg = srvReg
+	regCenter := NewRegCenter(impl, regNet, observerNet)
+	// srvReg.SetNets(regNet, observerNet)
+	s.regCenter = regCenter
 	return nil
 }
 

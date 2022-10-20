@@ -27,27 +27,6 @@ const (
 	RESTART_REG_DELAY  = 1 * time.Second
 )
 
-//========================================
-//                RegInfo
-//========================================
-// type RegInfo interface {
-// 	Marshal(v interface{}) ([]byte, error)
-// 	Unmarshal(data []byte, v interface{}) error
-// }
-
-// type RegInfoBase struct {
-// }
-
-// func (i *RegInfoBase) Marshal(v interface{}) ([]byte, error) {
-// 	data, err := json.Marshal(v)
-// 	return data, err
-// }
-
-// func (i *RegInfoBase) Unmarshal(data []byte, v interface{}) error {
-// 	err := json.Unmarshal(data, v)
-// 	return err
-// }
-
 type RegSrvInfo struct {
 	SrvType uint32
 	SrvNo   uint32
@@ -71,9 +50,9 @@ var EmptyRegGlobalData = &RegGlobalData{
 }
 
 //========================
-//     SrvRegImpl
+//     RegCenterImpl
 //========================
-type SrvRegImpl interface {
+type RegCenterImpl interface {
 	// SetWatchSrvAndData(watchedSrvTypes []uint32, watchedGDataKeys []string)
 	GetWatchSrvTypes() []uint32
 	GetWatchGDataKeys() []string
@@ -90,11 +69,127 @@ type SrvRegImpl interface {
 	GetGlobalData(key string) (*RegGlobalData, bool)
 }
 
-// type RegDataProcessor interface {
-// 	ProcessRegGlobalData(key string, data []byte) (*RegGlobalData, error)
-// 	ProcessRegSrvInfo(srvInfo *reg.SrvInfo) (*RegSrvInfo, error)
+//========================
+//     RegCenter
+//========================
+type RegCenter struct {
+	impl   RegCenterImpl
+	logger *yx.Logger
+	ec     *yx.ErrCatcher
+}
+
+func NewRegCenter(impl RegCenterImpl, regNet *RpcNetListener, observerNet *RegPushNetListener) *RegCenter {
+	r := &RegCenter{
+		impl:   impl,
+		logger: yx.NewLogger("RegCenter"),
+		ec:     yx.NewErrCatcher("RegCenter"),
+	}
+
+	r.impl.SetNets(regNet, observerNet)
+	return r
+}
+
+// func (r *RegCenter) SetNets(regNet *RpcNetListener, observerNet *RegPushNetListener) {
+// 	r.impl.SetNets(regNet, observerNet)
 // }
 
+func (r *RegCenter) Init(regCfg *RegCfg) error {
+	err := r.impl.Init(regCfg)
+	return r.ec.Throw("Init", err)
+}
+
+func (r *RegCenter) Start() error {
+	var err error = nil
+	defer r.ec.DeferThrow("Start", &err)
+
+	// Register
+	err = r.impl.Register()
+	if err != nil {
+		return err
+	}
+
+	// Watch
+	err = r.impl.Watch()
+	if err != nil {
+		return err
+	}
+
+	// GetInfo
+	err = r.impl.FetchInfos()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *RegCenter) Stop() {
+	r.impl.Stop()
+}
+
+func (r *RegCenter) Register() error {
+	err := r.impl.Register()
+	return r.ec.Throw("Register", err)
+}
+
+func (r *RegCenter) ReconnRegSrv(regCfg *RegCfg) {
+	var err error = nil
+
+	for {
+		err = r.reconnRegSrvImpl(regCfg)
+		if err != nil {
+			r.ec.Catch("ReconnRegSrv", &err)
+			continue
+		}
+
+		break
+	}
+}
+
+func (r *RegCenter) reconnRegSrvImpl(regCfg *RegCfg) error {
+	<-time.After(CONN_REG_SRV_DELAY)
+
+	r.logger.I("Reconnect register server...")
+
+	err := r.impl.ConnRegSrv(regCfg)
+	if err != nil {
+		r.logger.E("Reconnect register server err: ", err)
+		return err
+	}
+
+	r.logger.I("Reconnect register server success !!")
+
+	<-time.After(RESTART_REG_DELAY)
+	err = r.impl.Reset()
+	if err != nil {
+		r.logger.E("Reset err: ", err)
+		return err
+	}
+
+	err = r.Start()
+	if err != nil {
+		r.logger.E("Start err: ", err)
+		return err
+	}
+
+	return nil
+}
+
+func (r *RegCenter) GetSrvInfo(peerType uint32, peerNo uint32) (*RegSrvInfo, bool) {
+	return r.impl.GetSrvInfo(peerType, peerNo)
+}
+
+func (r *RegCenter) GetSrvInfosByType(peerType uint32) []*RegSrvInfo {
+	return r.impl.GetSrvInfosByType(peerType)
+}
+
+func (r *RegCenter) GetGlobalData(key string) (*RegGlobalData, bool) {
+	return r.impl.GetGlobalData(key)
+}
+
+//========================
+//     RegPushListener
+//========================
 type RegPushListener interface {
 	OnGlobalDataRemovePush(key string)
 	OnGlobalDataUpdatePush(key string)
@@ -103,9 +198,9 @@ type RegPushListener interface {
 }
 
 //========================
-//     BaseSrvRegImpl
+//     BaseRegCenterImpl
 //========================
-type BaseSrvRegImpl struct {
+type BaseRegCenterImpl struct {
 	// watchedSrvTypes   []uint32
 	mapSrvType2Struct map[uint32]string
 	mapPeerId2SrvInfo map[uint32]*RegSrvInfo
@@ -126,8 +221,8 @@ type BaseSrvRegImpl struct {
 	ec           *yx.ErrCatcher
 }
 
-func NewBaseSrvRegImpl(p2pCli *p2pnet.SimpleClient, objFactory *yx.ObjectFactory) *BaseSrvRegImpl {
-	return &BaseSrvRegImpl{
+func NewBaseRegCenterImpl(p2pCli *p2pnet.SimpleClient, objFactory *yx.ObjectFactory) *BaseRegCenterImpl {
+	return &BaseRegCenterImpl{
 		// watchedSrvTypes:   nil,
 		mapSrvType2Struct: make(map[uint32]string),
 		mapPeerId2SrvInfo: make(map[uint32]*RegSrvInfo),
@@ -141,8 +236,8 @@ func NewBaseSrvRegImpl(p2pCli *p2pnet.SimpleClient, objFactory *yx.ObjectFactory
 		// dataProcessor:     p,
 		objFactory:   objFactory,
 		pushListener: nil,
-		logger:       yx.NewLogger("BaseSrvRegImpl"),
-		ec:           yx.NewErrCatcher("BaseSrvRegImpl"),
+		logger:       yx.NewLogger("BaseRegCenterImpl"),
+		ec:           yx.NewErrCatcher("BaseRegCenterImpl"),
 	}
 }
 
@@ -151,7 +246,7 @@ func NewBaseSrvRegImpl(p2pCli *p2pnet.SimpleClient, objFactory *yx.ObjectFactory
 // 	r.watchedGDataKeys = watchedGDataKeys
 // }
 
-func (r *BaseSrvRegImpl) GetWatchSrvTypes() []uint32 {
+func (r *BaseRegCenterImpl) GetWatchSrvTypes() []uint32 {
 	types := make([]uint32, 0, len(r.mapSrvType2Struct))
 	for key := range r.mapSrvType2Struct {
 		types = append(types, key)
@@ -160,7 +255,7 @@ func (r *BaseSrvRegImpl) GetWatchSrvTypes() []uint32 {
 	return types
 }
 
-func (r *BaseSrvRegImpl) GetWatchGDataKeys() []string {
+func (r *BaseRegCenterImpl) GetWatchGDataKeys() []string {
 	keys := make([]string, 0, len(r.mapDataKey2Struct))
 	for key := range r.mapDataKey2Struct {
 		keys = append(keys, key)
@@ -169,22 +264,22 @@ func (r *BaseSrvRegImpl) GetWatchGDataKeys() []string {
 	return keys
 }
 
-func (r *BaseSrvRegImpl) SetPushListener(l RegPushListener) {
+func (r *BaseRegCenterImpl) SetPushListener(l RegPushListener) {
 	r.pushListener = l
 }
 
-func (r *BaseSrvRegImpl) SetNets(regNet *RpcNetListener, observerNet *RegPushNetListener) {
+func (r *BaseRegCenterImpl) SetNets(regNet *RpcNetListener, observerNet *RegPushNetListener) {
 	r.regNet = regNet
 	r.observerNet = observerNet
 }
 
-func (r *BaseSrvRegImpl) ConnRegSrv(regCfg *RegCfg) error {
+func (r *BaseRegCenterImpl) ConnRegSrv(regCfg *RegCfg) error {
 	addr := regCfg.Address + ":" + strconv.FormatUint(uint64(regCfg.Port), 10)
 	err := r.p2pCli.OpenConn(regCfg.PeerType, regCfg.PeerNo, regCfg.Network, addr, time.Duration(regCfg.Timeout)*time.Second, true)
 	return r.ec.Throw("ConnRegSrv", err)
 }
 
-func (r *BaseSrvRegImpl) Init(regCfg *RegCfg) error {
+func (r *BaseRegCenterImpl) Init(regCfg *RegCfg) error {
 	var err error = nil
 
 	// connect sock
@@ -215,13 +310,13 @@ func (r *BaseSrvRegImpl) Init(regCfg *RegCfg) error {
 	return r.ec.Throw("Init", err)
 }
 
-func (r *BaseSrvRegImpl) Stop() {
+func (r *BaseRegCenterImpl) Stop() {
 	if r.regCli != nil {
 		r.regCli.Stop()
 	}
 }
 
-func (r *BaseSrvRegImpl) Reset() error {
+func (r *BaseRegCenterImpl) Reset() error {
 	err := r.regCli.FetchFuncList()
 	if err != nil {
 		return r.ec.Throw("Reset", err)
@@ -232,11 +327,11 @@ func (r *BaseSrvRegImpl) Reset() error {
 	return nil
 }
 
-func (r *BaseSrvRegImpl) Register() error {
+func (r *BaseRegCenterImpl) Register() error {
 	return nil
 }
 
-func (r *BaseSrvRegImpl) Watch() error {
+func (r *BaseRegCenterImpl) Watch() error {
 	r.logger.I("watch...")
 
 	var err error = nil
@@ -264,7 +359,7 @@ func (r *BaseSrvRegImpl) Watch() error {
 	return nil
 }
 
-func (r *BaseSrvRegImpl) FetchInfos() error {
+func (r *BaseRegCenterImpl) FetchInfos() error {
 	r.logger.I("get info...")
 
 	var err error = nil
@@ -291,11 +386,11 @@ func (r *BaseSrvRegImpl) FetchInfos() error {
 	return nil
 }
 
-func (r *BaseSrvRegImpl) GetRegCli() *reg.Client {
+func (r *BaseRegCenterImpl) GetRegCli() *reg.Client {
 	return r.regCli
 }
 
-func (r *BaseSrvRegImpl) FetchSrvInfos(srvType uint32) ([]*RegSrvInfo, error) {
+func (r *BaseRegCenterImpl) FetchSrvInfos(srvType uint32) ([]*RegSrvInfo, error) {
 	r.logger.I("fetch server infos...")
 	r.logger.I("srvType = ", srvType)
 
@@ -318,7 +413,7 @@ func (r *BaseSrvRegImpl) FetchSrvInfos(srvType uint32) ([]*RegSrvInfo, error) {
 	return regInfos, nil
 }
 
-func (r *BaseSrvRegImpl) FetchSrvInfo(srvType uint32, srvNo uint32) (*RegSrvInfo, error) {
+func (r *BaseRegCenterImpl) FetchSrvInfo(srvType uint32, srvNo uint32) (*RegSrvInfo, error) {
 	r.logger.I("fetch server info...")
 	r.logger.I("srvType = ", srvType)
 
@@ -339,7 +434,7 @@ func (r *BaseSrvRegImpl) FetchSrvInfo(srvType uint32, srvNo uint32) (*RegSrvInfo
 	return regInfo, nil
 }
 
-func (r *BaseSrvRegImpl) FetchGlobalData(key string) (*RegGlobalData, error) {
+func (r *BaseRegCenterImpl) FetchGlobalData(key string) (*RegGlobalData, error) {
 	r.logger.I("fetch global data info...")
 	r.logger.I("key = ", key)
 
@@ -356,7 +451,7 @@ func (r *BaseSrvRegImpl) FetchGlobalData(key string) (*RegGlobalData, error) {
 	return regInfo, nil
 }
 
-func (r *BaseSrvRegImpl) GetSrvInfo(peerType uint32, peerNo uint32) (*RegSrvInfo, bool) {
+func (r *BaseRegCenterImpl) GetSrvInfo(peerType uint32, peerNo uint32) (*RegSrvInfo, bool) {
 	r.lckSrvInfo.RLock()
 	defer r.lckSrvInfo.RUnlock()
 
@@ -365,7 +460,7 @@ func (r *BaseSrvRegImpl) GetSrvInfo(peerType uint32, peerNo uint32) (*RegSrvInfo
 	return info, ok
 }
 
-func (r *BaseSrvRegImpl) GetSrvInfosByType(peerType uint32) []*RegSrvInfo {
+func (r *BaseRegCenterImpl) GetSrvInfosByType(peerType uint32) []*RegSrvInfo {
 	r.lckSrvInfo.RLock()
 	defer r.lckSrvInfo.RUnlock()
 
@@ -380,7 +475,7 @@ func (r *BaseSrvRegImpl) GetSrvInfosByType(peerType uint32) []*RegSrvInfo {
 	return infoArr
 }
 
-func (r *BaseSrvRegImpl) GetGlobalData(key string) (*RegGlobalData, bool) {
+func (r *BaseRegCenterImpl) GetGlobalData(key string) (*RegGlobalData, bool) {
 	r.lckGlobalData.RLock()
 	defer r.lckGlobalData.RUnlock()
 
@@ -388,7 +483,7 @@ func (r *BaseSrvRegImpl) GetGlobalData(key string) (*RegGlobalData, bool) {
 	return info, ok
 }
 
-func (r *BaseSrvRegImpl) handleRegPush(keyType int, key string, operate int) {
+func (r *BaseRegCenterImpl) handleRegPush(keyType int, key string, operate int) {
 	if keyType == reg.KEY_TYPE_GLOBAL_DATA {
 		if operate == reg.DATA_OPR_TYPE_REMOVE {
 			r.removeGlobalData(key)
@@ -430,11 +525,11 @@ func (r *BaseSrvRegImpl) handleRegPush(keyType int, key string, operate int) {
 	}
 }
 
-func (r *BaseSrvRegImpl) getPeerId(peerType uint32, peerNo uint32) uint32 {
+func (r *BaseRegCenterImpl) getPeerId(peerType uint32, peerNo uint32) uint32 {
 	return (peerType << 16) | peerNo
 }
 
-func (r *BaseSrvRegImpl) addSrvInfos(srvInfos []*reg.SrvInfo) []*RegSrvInfo {
+func (r *BaseRegCenterImpl) addSrvInfos(srvInfos []*reg.SrvInfo) []*RegSrvInfo {
 	regInfos := make([]*RegSrvInfo, 0)
 
 	// if r.dataProcessor == nil {
@@ -458,7 +553,7 @@ func (r *BaseSrvRegImpl) addSrvInfos(srvInfos []*reg.SrvInfo) []*RegSrvInfo {
 	return regInfos
 }
 
-func (r *BaseSrvRegImpl) addSrvInfo(info *reg.SrvInfo) (*RegSrvInfo, error) {
+func (r *BaseRegCenterImpl) addSrvInfo(info *reg.SrvInfo) (*RegSrvInfo, error) {
 	// if r.dataProcessor == nil {
 	// 	return nil, ErrNoDataProcessor
 	// }
@@ -476,7 +571,7 @@ func (r *BaseSrvRegImpl) addSrvInfo(info *reg.SrvInfo) (*RegSrvInfo, error) {
 	return regInfo, nil
 }
 
-func (r *BaseSrvRegImpl) removeSrvInfo(peerType uint32, peerNo uint32) {
+func (r *BaseRegCenterImpl) removeSrvInfo(peerType uint32, peerNo uint32) {
 	r.lckSrvInfo.Lock()
 	defer r.lckSrvInfo.Unlock()
 
@@ -487,13 +582,13 @@ func (r *BaseSrvRegImpl) removeSrvInfo(peerType uint32, peerNo uint32) {
 	}
 }
 
-func (r *BaseSrvRegImpl) clearSrvInfos() {
+func (r *BaseRegCenterImpl) clearSrvInfos() {
 	r.lckSrvInfo.Lock()
 	defer r.lckSrvInfo.Unlock()
 	r.mapPeerId2SrvInfo = make(map[uint32]*RegSrvInfo)
 }
 
-func (r *BaseSrvRegImpl) setGlobalData(key string, data []byte) *RegGlobalData {
+func (r *BaseRegCenterImpl) setGlobalData(key string, data []byte) *RegGlobalData {
 	// if r.dataProcessor == nil {
 	// 	return nil
 	// }
@@ -510,7 +605,7 @@ func (r *BaseSrvRegImpl) setGlobalData(key string, data []byte) *RegGlobalData {
 	return regData
 }
 
-func (r *BaseSrvRegImpl) removeGlobalData(key string) {
+func (r *BaseRegCenterImpl) removeGlobalData(key string) {
 	r.lckGlobalData.Lock()
 	defer r.lckGlobalData.Unlock()
 
@@ -520,14 +615,14 @@ func (r *BaseSrvRegImpl) removeGlobalData(key string) {
 	}
 }
 
-func (r *BaseSrvRegImpl) clearGlobalDatas() {
+func (r *BaseRegCenterImpl) clearGlobalDatas() {
 	r.lckGlobalData.Lock()
 	defer r.lckGlobalData.Unlock()
 
 	r.mapKey2GlobalData = make(map[string]*RegGlobalData)
 }
 
-func (r *BaseSrvRegImpl) unmarshalSrvInfo(info *reg.SrvInfo) (*RegSrvInfo, error) {
+func (r *BaseRegCenterImpl) unmarshalSrvInfo(info *reg.SrvInfo) (*RegSrvInfo, error) {
 	data, err := base64.StdEncoding.DecodeString(info.DataBase64)
 	if err != nil {
 		return nil, err
@@ -557,7 +652,7 @@ func (r *BaseSrvRegImpl) unmarshalSrvInfo(info *reg.SrvInfo) (*RegSrvInfo, error
 	return regData, nil
 }
 
-func (r *BaseSrvRegImpl) unmarshalGlobalData(key string, data []byte) (*RegGlobalData, error) {
+func (r *BaseRegCenterImpl) unmarshalGlobalData(key string, data []byte) (*RegGlobalData, error) {
 	structName, ok := r.mapDataKey2Struct[key]
 	if !ok {
 		return nil, ErrStructNotRegister
@@ -579,119 +674,4 @@ func (r *BaseSrvRegImpl) unmarshalGlobalData(key string, data []byte) (*RegGloba
 	}
 
 	return regData, nil
-}
-
-//========================
-//     SrvReg
-//========================
-type SrvReg struct {
-	impl   SrvRegImpl
-	logger *yx.Logger
-	ec     *yx.ErrCatcher
-}
-
-func NewSrvReg(impl SrvRegImpl) *SrvReg {
-	return &SrvReg{
-		impl:   impl,
-		logger: yx.NewLogger("SrvReg"),
-		ec:     yx.NewErrCatcher("SrvReg"),
-	}
-}
-
-func (r *SrvReg) SetNets(regNet *RpcNetListener, observerNet *RegPushNetListener) {
-	r.impl.SetNets(regNet, observerNet)
-}
-
-func (r *SrvReg) Init(regCfg *RegCfg) error {
-	err := r.impl.Init(regCfg)
-	return r.ec.Throw("Init", err)
-}
-
-func (r *SrvReg) Start() error {
-	var err error = nil
-	defer r.ec.DeferThrow("Start", &err)
-
-	// Register
-	err = r.impl.Register()
-	if err != nil {
-		return err
-	}
-
-	// Watch
-	err = r.impl.Watch()
-	if err != nil {
-		return err
-	}
-
-	// GetInfo
-	err = r.impl.FetchInfos()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *SrvReg) Stop() {
-	r.impl.Stop()
-}
-
-func (r *SrvReg) Register() error {
-	err := r.impl.Register()
-	return r.ec.Throw("Register", err)
-}
-
-func (r *SrvReg) ReconnRegSrv(regCfg *RegCfg) {
-	var err error = nil
-
-	for {
-		err = r.reconnRegSrvImpl(regCfg)
-		if err != nil {
-			r.ec.Catch("ReconnRegSrv", &err)
-			continue
-		}
-
-		break
-	}
-}
-
-func (r *SrvReg) reconnRegSrvImpl(regCfg *RegCfg) error {
-	<-time.After(CONN_REG_SRV_DELAY)
-
-	r.logger.I("Reconnect register server...")
-
-	err := r.impl.ConnRegSrv(regCfg)
-	if err != nil {
-		r.logger.E("Reconnect register server err: ", err)
-		return err
-	}
-
-	r.logger.I("Reconnect register server success !!")
-
-	<-time.After(RESTART_REG_DELAY)
-	err = r.impl.Reset()
-	if err != nil {
-		r.logger.E("Reset err: ", err)
-		return err
-	}
-
-	err = r.Start()
-	if err != nil {
-		r.logger.E("Start err: ", err)
-		return err
-	}
-
-	return nil
-}
-
-func (r *SrvReg) GetSrvInfo(peerType uint32, peerNo uint32) (*RegSrvInfo, bool) {
-	return r.impl.GetSrvInfo(peerType, peerNo)
-}
-
-func (r *SrvReg) GetSrvInfosByType(peerType uint32) []*RegSrvInfo {
-	return r.impl.GetSrvInfosByType(peerType)
-}
-
-func (r *SrvReg) GetGlobalData(key string) (*RegGlobalData, bool) {
-	return r.impl.GetGlobalData(key)
 }
