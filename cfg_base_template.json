@@ -27,7 +27,21 @@
         "port" : 1234,
         "timeout" : 3,
         "max_read_queue" : 10,
-        "max_write_queue" : 10
+        "max_write_queue" : 10,
+        "watch_srv" :
+        [
+            {
+                "srv_type" : 1,
+                "data" : "github.com/yxframe/goframe.TestRegInfo"
+            }
+        ],
+        "watch_data" :
+        [
+            {
+                "key" : "/test",
+                "data" : "github.com/yxframe/goframe.TestRegInfo"
+            }
+        ]
     },
     "p2p_cli" :
     {

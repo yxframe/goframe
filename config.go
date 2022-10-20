@@ -35,6 +35,16 @@ type P2pConnSrvCfg struct {
 	// Server           *server.Config        `json:"server"`
 }
 
+type RegWatchSrvCfg struct {
+	SrvType uint32 `json:"srv_type"`
+	Data    string `json:"data"`
+}
+
+type RegWatchDataCfg struct {
+	Key  string `json:"key"`
+	Data string `json:"data"`
+}
+
 type RegCfg struct {
 	SrvRegImpl  string `json:"impl"`
 	RegNet      string `json:"reg_net"`
@@ -46,6 +56,9 @@ type RegCfg struct {
 	Timeout     uint32 `json:"timeout"`
 	MaxReadQue  uint32 `json:"max_read_queue"`
 	MaxWriteQue uint32 `json:"max_write_queue"`
+
+	WatchSrvTypes []*RegWatchSrvCfg  `json:"watch_srv"`
+	WatchDataKeys []*RegWatchDataCfg `json:"watch_data"`
 }
 
 type RpcSrvCfg struct {
