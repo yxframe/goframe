@@ -302,6 +302,10 @@ func (s *BaseServer) IsRegPeer(peerType uint32, peerNo uint32, service string) b
 	return true
 }
 
+func (s *BaseServer) IsRegService(service string) bool {
+	return (service == reg.REG_SRV || service == reg.PUSH_MARK)
+}
+
 func (s *BaseServer) buildP2pConnCli(srvCfg *SrvBuildCfg) error {
 	var err error = nil
 	defer s.ec.DeferThrow("buildP2pConnCli", &err)
