@@ -13,6 +13,7 @@ import (
 	"github.com/yxlib/httpsrv"
 	"github.com/yxlib/odb"
 	"github.com/yxlib/p2pnet"
+	"github.com/yxlib/reg"
 	"github.com/yxlib/rpc"
 	"github.com/yxlib/server"
 	"github.com/yxlib/yx"
@@ -283,6 +284,22 @@ func (s *BaseServer) Close() {
 	if s.http != nil {
 		s.http.Shutdown(HTTP_SHUTDOWN_TIME_OUT)
 	}
+}
+
+func (s *BaseServer) IsRegPeer(peerType uint32, peerNo uint32, service string) bool {
+	if service != reg.REG_SRV {
+		return false
+	}
+
+	if peerType != s.cfg.Reg.PeerType {
+		return false
+	}
+
+	if peerNo != s.cfg.Reg.PeerNo {
+		return false
+	}
+
+	return true
 }
 
 func (s *BaseServer) buildP2pConnCli(srvCfg *SrvBuildCfg) error {
