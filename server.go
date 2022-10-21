@@ -406,7 +406,7 @@ func (s *BaseServer) buildReg(srvCfg *SrvBuildCfg) error {
 
 	cfg := srvCfg.Reg
 	// server
-	obj, err := s.objFactory.CreateObject(cfg.SrvRegImpl)
+	obj, err := s.objFactory.CreateObject(cfg.RegCenterImpl)
 	if err != nil {
 		return err
 	}

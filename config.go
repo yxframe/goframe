@@ -46,16 +46,16 @@ type RegWatchDataCfg struct {
 }
 
 type RegCfg struct {
-	SrvRegImpl  string `json:"impl"`
-	RegNet      string `json:"reg_net"`
-	PeerType    uint32 `json:"peer_type"`
-	PeerNo      uint32 `json:"peer_no"`
-	Network     string `json:"network"`
-	Address     string `json:"address"`
-	Port        uint16 `json:"port"`
-	Timeout     uint32 `json:"timeout"`
-	MaxReadQue  uint32 `json:"max_read_queue"`
-	MaxWriteQue uint32 `json:"max_write_queue"`
+	RegCenterImpl string `json:"reg_center"`
+	RegNet        string `json:"reg_net"`
+	PeerType      uint32 `json:"peer_type"`
+	PeerNo        uint32 `json:"peer_no"`
+	Network       string `json:"network"`
+	Address       string `json:"address"`
+	Port          uint16 `json:"port"`
+	Timeout       uint32 `json:"timeout"`
+	MaxReadQue    uint32 `json:"max_read_queue"`
+	MaxWriteQue   uint32 `json:"max_write_queue"`
 
 	WatchSrvTypes []*RegWatchSrvCfg  `json:"watch_srv"`
 	WatchDataKeys []*RegWatchDataCfg `json:"watch_data"`

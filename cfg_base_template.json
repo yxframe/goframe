@@ -18,7 +18,7 @@
     },
     "reg" :
     {
-        "impl" : "github.com/yxframe/goframe.TestSrvRegImpl",
+        "reg_center" : "github.com/yxframe/goframe.TestRegCenter",
         "reg_net" : "github.com/yxframe/goframe.RpcNetListener",
         "peer_type" : 2,
         "peer_no" : 1,
