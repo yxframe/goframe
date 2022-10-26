@@ -369,7 +369,9 @@ func (r *BaseRegCenterImpl) FetchInfos() error {
 		for srvType := range r.mapSrvType2Struct {
 			_, err = r.FetchSrvInfos(srvType)
 			if err != nil {
-				return err
+				// return err
+				r.logger.E("FetchSrvInfos ", srvType, " err")
+				r.ec.Catch("FetchInfos", &err)
 			}
 		}
 	}
@@ -378,7 +380,9 @@ func (r *BaseRegCenterImpl) FetchInfos() error {
 		for gDataKey := range r.mapDataKey2Struct {
 			_, err = r.FetchGlobalData(gDataKey)
 			if err != nil {
-				return err
+				// return err
+				r.logger.E("FetchGlobalData ", gDataKey, " err")
+				r.ec.Catch("FetchInfos", &err)
 			}
 		}
 	}
