@@ -498,6 +498,7 @@ func (r *BaseRegCenterImpl) handleRegPush(keyType int, key string, operate int) 
 		} else {
 			data, err := r.regCli.GetGlobalData(key)
 			if err != nil {
+				r.ec.Catch("handleRegPush", &err)
 				return
 			}
 
@@ -518,6 +519,7 @@ func (r *BaseRegCenterImpl) handleRegPush(keyType int, key string, operate int) 
 		} else {
 			info, err := r.regCli.GetSrvByKey(key)
 			if err != nil {
+				r.ec.Catch("handleRegPush", &err)
 				return
 			}
 
