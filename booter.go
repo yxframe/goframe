@@ -152,17 +152,7 @@ func (b *Booter) start(srv Server, cfg *SrvBuildCfg, buildSuccCb func() error, r
 	defer srv.Stop()
 
 	// register
-	err = srv.Register()
-	if err != nil {
-		return err
-	}
-
-	if registerSuccCb != nil {
-		err = registerSuccCb()
-		if err != nil {
-			return err
-		}
-	}
+	go b.register(srv, registerSuccCb)
 
 	// listen
 	name := srv.GetName()
@@ -177,4 +167,25 @@ func (b *Booter) start(srv Server, cfg *SrvBuildCfg, buildSuccCb func() error, r
 	b.logger.I("===========================================================")
 
 	return err
+}
+
+func (b *Booter) register(srv Server, registerSuccCb func() error) {
+	var err error = nil
+	defer b.ec.Catch("register", &err)
+
+	err = srv.Register()
+	if err != nil {
+		srv.Close()
+		return
+	}
+
+	b.logger.I("=====>  Register Server Success!!")
+
+	if registerSuccCb != nil {
+		err = registerSuccCb()
+		if err != nil {
+			srv.Close()
+			return
+		}
+	}
 }

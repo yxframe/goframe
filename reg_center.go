@@ -102,12 +102,6 @@ func (r *RegCenter) Start() error {
 	var err error = nil
 	defer r.ec.DeferThrow("Start", &err)
 
-	// Register
-	err = r.impl.Register()
-	if err != nil {
-		return err
-	}
-
 	// Watch
 	err = r.impl.Watch()
 	if err != nil {
@@ -116,6 +110,12 @@ func (r *RegCenter) Start() error {
 
 	// GetInfo
 	err = r.impl.FetchInfos()
+	if err != nil {
+		return err
+	}
+
+	// Register
+	err = r.impl.Register()
 	if err != nil {
 		return err
 	}
