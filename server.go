@@ -195,7 +195,7 @@ func (s *BaseServer) Start() {
 		s.dc.Start(time.Minute*time.Duration(s.cfg.Db.SaveIntv), time.Minute*time.Duration(s.cfg.Db.ClearIntv))
 	}
 
-	if strings.TrimSpace(s.cfg.ShutdownFile) != "" {
+	if s.cfg.Shutdown != nil && strings.TrimSpace(s.cfg.Shutdown.File) != "" {
 		go s.checkShutdownFile()
 	}
 }
@@ -587,11 +587,11 @@ func (s *BaseServer) buildDb(srvCfg *SrvBuildCfg) error {
 }
 
 func (s *BaseServer) checkShutdownFile() {
-	ticker := time.NewTicker(time.Duration(s.cfg.ShutdownCheckIntv) * time.Second)
+	ticker := time.NewTicker(time.Duration(s.cfg.Shutdown.CheckIntv) * time.Second)
 
 	for {
 		<-ticker.C
-		ok, _ := yx.IsFileExist(s.cfg.ShutdownFile)
+		ok, _ := yx.IsFileExist(s.cfg.Shutdown.File)
 		if ok {
 			s.Close()
 			break

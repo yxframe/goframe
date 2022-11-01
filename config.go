@@ -18,6 +18,11 @@ const (
 	INTER_TYPE_JSON
 )
 
+type ShutdownCfg struct {
+	File      string `json:"file"`
+	CheckIntv int64  `json:"check_intv_sec"`
+}
+
 type P2pConnCliCfg struct {
 	IsWsCli       bool   `json:"is_ws_cli"`
 	HeaderFactory string `json:"header_factory"`
@@ -86,6 +91,7 @@ type SrvBuildCfg struct {
 	Name        string         `json:"name"`
 	TimeZone    int32          `json:"time_zone"`
 	IsDebugMode bool           `json:"debug_mode"`
+	Shutdown    *ShutdownCfg   `json:"shutdown"`
 	Log         *yx.LogConf    `json:"log"`
 	Reg         *RegCfg        `json:"reg"`
 	P2pConnCli  *P2pConnCliCfg `json:"p2p_cli"`
@@ -94,9 +100,6 @@ type SrvBuildCfg struct {
 	P2pSrv      *P2pSrvCfg
 	HttpSrv     *HttpSrvCfg
 	Db          *odb.Config
-
-	ShutdownFile      string `json:"shutdown_file"`
-	ShutdownCheckIntv int64  `json:"shutdown_check_intv_sec"`
 }
 
 func NewSrvBuildCfg() *SrvBuildCfg {
