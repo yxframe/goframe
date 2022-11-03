@@ -132,6 +132,10 @@ func (l *RpcNetListener) WriteRpcPack(dstPeerType uint32, dstPeerNo uint32, payl
 
 func canHandleRpcPack(n rpc.Net, pack *p2pnet.Pack, recvPeerType uint32, recvPeerNo uint32) bool {
 	mark := n.GetService()
+	if len(pack.Payload) == 0 {
+		return false
+	}
+
 	if !rpc.CheckRpcMark([]byte(mark), pack.Payload[0]) {
 		return false
 	}
