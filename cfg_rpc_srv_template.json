@@ -1,21 +1,29 @@
 {
-    "max_read_queue" : 10,
     "is_use_srv_conn" : true,
-    "rpc" :
+    "srv_net" : "github.com/yxframe/goframe.TestSrvNet",
+    "inter_type" : 2,
+    "server" :
     {
-        "services" : [
+        "use_worker_mode" : true,
+        "max_req_num" : 10,
+        "max_task_num" : 10,
+        "auto_mod_cmd" : false,
+        "services" :
+        [
             {
-                "name" : "TEST_RPC",
+                "name" : "TestRpc",
                 "service" : "github.com/yxframe/goframe.TestRpcService",
-                "func" :
-                {
-                    "Test" :
+                "mod" : 1,
+                "processors" :
+                [
                     {
+                        "name" : "Test",
+                        "cmd" : 1,
                         "handler" : "OnTest",
                         "req" : "github.com/yxframe/goframe.TestReq",
                         "resp" : "github.com/yxframe/goframe.TestResp"
                     }
-                }
+                ]
             }
         ]
     }

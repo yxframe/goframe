@@ -27,6 +27,10 @@ const (
 	RESTART_REG_DELAY  = 1 * time.Second
 )
 
+const (
+	FETCH_REG_FUNC_LIST_NO = 101
+)
+
 type RegSrvInfo struct {
 	SrvType uint32
 	SrvNo   uint32
@@ -306,7 +310,7 @@ func (r *BaseRegCenterImpl) Init(regCfg *RegCfg) error {
 	r.regCli.Start()
 	r.regCli.ListenDataOprPush(r.handleRegPush)
 
-	err = r.regCli.FetchFuncList()
+	err = r.regCli.FetchFuncList(FETCH_REG_FUNC_LIST_NO)
 	return r.ec.Throw("Init", err)
 }
 
@@ -317,7 +321,7 @@ func (r *BaseRegCenterImpl) Stop() {
 }
 
 func (r *BaseRegCenterImpl) Reset() error {
-	err := r.regCli.FetchFuncList()
+	err := r.regCli.FetchFuncList(FETCH_REG_FUNC_LIST_NO)
 	if err != nil {
 		return r.ec.Throw("Reset", err)
 	}

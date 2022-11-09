@@ -8,7 +8,6 @@ import (
 	"github.com/yxlib/httpsrv"
 	"github.com/yxlib/odb"
 	"github.com/yxlib/p2pnet"
-	"github.com/yxlib/rpc"
 	"github.com/yxlib/server"
 	"github.com/yxlib/yx"
 )
@@ -67,21 +66,23 @@ type RegCfg struct {
 }
 
 type RpcSrvCfg struct {
-	MaxReadQue   uint32       `json:"max_read_queue"`
-	IsUseSrvConn bool         `json:"is_use_srv_conn"`
-	RpcSrv       *rpc.SrvConf `json:"rpc"`
+	// MaxReadQue   uint32       `json:"max_read_queue"`
+	IsUseSrvConn bool           `json:"is_use_srv_conn"`
+	SrvNet       string         `json:"srv_net"`
+	InterType    int            `json:"inter_type"` // 0 none, 1 pb, 2 json
+	RpcSrv       *server.Config `json:"server"`
 }
 
 type P2pSrvCfg struct {
 	SrvNet    string         `json:"srv_net"`
-	InterType int            `json:"inter_type"`
+	InterType int            `json:"inter_type"` // 0 none, 1 pb, 2 json
 	Server    *server.Config `json:"server"`
 }
 
 type HttpSrvCfg struct {
 	Reader    string          `json:"reader"`
 	Writer    string          `json:"writer"`
-	InterType int             `json:"inter_type"`
+	InterType int             `json:"inter_type"` // 0 none, 1 pb, 2 json
 	Http      *httpsrv.Config `json:"http"`
 }
 

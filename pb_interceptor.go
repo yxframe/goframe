@@ -21,7 +21,7 @@ type PbInterceptor struct {
 
 func (i *PbInterceptor) OnPreHandle(req *server.Request, resp *server.Response) (int32, error) {
 	// request
-	if req.Payload != nil {
+	if len(req.Payload) > 0 {
 		reqData, err := server.ProtoBinder.GetRequest(req.Mod, req.Cmd)
 		if err != nil {
 			return server.RESP_CODE_NOT_SUPPORT_PROTO, err
@@ -46,22 +46,27 @@ func (i *PbInterceptor) OnPreHandle(req *server.Request, resp *server.Response) 
 
 	// response
 	respData, err := server.ProtoBinder.GetResponse(resp.Mod, resp.Cmd)
-	if err != nil {
-		return server.RESP_CODE_NOT_SUPPORT_PROTO, err
+	if err == nil {
+		protoObj, ok := respData.(protoreflect.ProtoMessage)
+		if !ok {
+			return server.RESP_CODE_NOT_SUPPORT_PROTO, ErrNotProtoType
+		}
+
+		// always new an object, because it do not reset after reuse.
+		msg := protoObj.ProtoReflect().New()
+		resp.ExtData = msg.Interface()
+		// return server.RESP_CODE_NOT_SUPPORT_PROTO, err
 	}
 
-	protoObj, ok := respData.(protoreflect.ProtoMessage)
-	if !ok {
-		return server.RESP_CODE_NOT_SUPPORT_PROTO, ErrNotProtoType
-	}
-
-	// always new an object, because it do not reset after reuse.
-	msg := protoObj.ProtoReflect().New()
-	resp.ExtData = msg.Interface()
 	return 0, nil
 }
 
 func (i *PbInterceptor) OnHandleCompletion(req *server.Request, resp *server.Response) (int32, error) {
+	if resp.ExtData == nil {
+		resp.Payload = make([]byte, 0)
+		return 0, nil
+	}
+
 	protoObj, ok := resp.ExtData.(protoreflect.ProtoMessage)
 	if !ok {
 		return server.RESP_CODE_NOT_SUPPORT_PROTO, ErrNotProtoType

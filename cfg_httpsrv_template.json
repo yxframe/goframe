@@ -12,25 +12,34 @@
         "params_field" : "data",
         "code_field" : "code",
         "result_field" : "data",
-        "pattern" :
+        "server" :
         {
-            "/example" :
-            {
-                "service" : "github.com/yxlib/httpsrv.ExampleService",
-                "opr" :
+            "use_worker_mode" : false,
+            "max_req_num" : 10,
+            "max_task_num" : 10,
+            "auto_mod_cmd" : true,
+            "services" :
+            [
                 {
-                    "test1" : {
-                        "handler" : "OnHandleCmd1",
-                        "req" : "github.com/yxlib/httpsrv.Cmd1Request",
-                        "resp" : "github.com/yxlib/httpsrv.Cmd1Response"
-                    },
-                    "test2" : {
-                        "handler" : "OnHandleCmd2",
-                        "req" : "github.com/yxlib/httpsrv.Cmd2Request",
-                        "resp" : "github.com/yxlib/httpsrv.Cmd2Response"
-                    }
+                    "name" : "/example",
+                    "service" : "github.com/yxlib/httpsrv.ExampleService",
+                    "processors" :
+                    [
+                        {
+                            "name" : "test1",
+                            "handler" : "OnHandleCmd1",
+                            "req" : "github.com/yxlib/httpsrv.Cmd1Request",
+                            "resp" : "github.com/yxlib/httpsrv.Cmd1Response"
+                        },
+                        {
+                            "name" : "test2",
+                            "handler" : "OnHandleCmd2",
+                            "req" : "github.com/yxlib/httpsrv.Cmd2Request",
+                            "resp" : "github.com/yxlib/httpsrv.Cmd2Response"
+                        }
+                    ]
                 }
-            }
+            ]
         }
     }
 }

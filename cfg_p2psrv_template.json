@@ -3,8 +3,10 @@
     "inter_type" : 0,
     "server" :
     {
+        "use_worker_mode" : true,
         "max_req_num" : 10,
         "max_task_num" : 10,
+        "auto_mod_cmd" : false,
         "services" :
         [
             {

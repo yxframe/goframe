@@ -46,13 +46,14 @@ func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, buildSuccCb func
 
 	SrvInst = srv
 
-	// init logger
+	// load base config
 	err = yx.LoadJsonConf(cfg, bootCfg.BaseCfgPath, bootCfg.CfgDecodeCb)
 	if err != nil {
 		fmt.Println("load log config err: ", err)
 		return err
 	}
 
+	// init logger
 	buildCfg := cfg.GetSrvBuildCfg()
 	yx.ConfigLogger(buildCfg.Log)
 	yx.StartLogger()
@@ -61,13 +62,34 @@ func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, buildSuccCb func
 	defer b.ec.Catch("Boot", &err)
 
 	// load config
+	b.logger.I("=====>  Load Config...")
+
 	err = b.loadCfg(buildCfg, bootCfg)
 	if err != nil {
 		return err
 	}
 
+	b.logger.I("=====>  Load Config Success!!")
+
+	// build
+	b.logger.I("=====>  Build Server...")
+
+	err = srv.Build(buildCfg)
+	if err != nil {
+		return err
+	}
+
+	if buildSuccCb != nil {
+		err = buildSuccCb()
+		if err != nil {
+			return err
+		}
+	}
+
+	b.logger.I("=====>  Build Server Success!!")
+
 	// start
-	err = b.start(srv, buildCfg, buildSuccCb, registerSuccCb)
+	err = b.start(srv, registerSuccCb)
 	return err
 }
 
@@ -128,40 +150,28 @@ func (b *Booter) loadCfg(srvCfg *SrvBuildCfg, bootCfg *BootCfg) error {
 	return nil
 }
 
-func (b *Booter) start(srv Server, cfg *SrvBuildCfg, buildSuccCb func() error, registerSuccCb func() error) error {
+func (b *Booter) start(srv Server, registerSuccCb func() error) error {
 	var err error = nil
 	defer b.ec.DeferThrow("start", &err)
 
-	b.logger.I("Server Init...")
-
-	// build
-	err = srv.Build(cfg)
-	if err != nil {
-		return err
-	}
-
-	if buildSuccCb != nil {
-		err = buildSuccCb()
-		if err != nil {
-			return err
-		}
-	}
-
 	// start
+	b.logger.I("=====>  Start Server...")
+
 	srv.Start()
 	defer srv.Stop()
 
-	// register
-	go b.register(srv, registerSuccCb)
-
-	// listen
 	name := srv.GetName()
 	b.logger.I("###########################################################")
 	b.logger.I("#                " + name + " Server Start")
 	b.logger.I("###########################################################")
 
+	// register
+	go b.register(srv, registerSuccCb)
+
+	// listen
 	err = srv.Listen()
 
+	// stop
 	b.logger.I("===========================================================")
 	b.logger.I("=                " + name + " Server Stop")
 	b.logger.I("===========================================================")
@@ -172,6 +182,8 @@ func (b *Booter) start(srv Server, cfg *SrvBuildCfg, buildSuccCb func() error, r
 func (b *Booter) register(srv Server, registerSuccCb func() error) {
 	var err error = nil
 	defer b.ec.Catch("register", &err)
+
+	b.logger.I("=====>  Register Server...")
 
 	err = srv.Register()
 	if err != nil {
