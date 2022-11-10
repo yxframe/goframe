@@ -350,23 +350,6 @@ func (s *BaseServer) buildP2pConnSrv(srvCfg *SrvBuildCfg) error {
 	peerMgr := p2pnet.NewBasePeerMgr(srvCfg.PeerType, srvCfg.PeerNo)
 	peerMgr.AddTopPriorityListener(logNet)
 
-	// if len(cfg.NetListeners) > 0 {
-	// 	for _, name := range cfg.NetListeners {
-	// 		obj, err := s.objFactory.CreateObject(name)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-
-	// 		l, ok := obj.(p2pnet.P2pNetListener)
-	// 		if !ok {
-	// 			err = errors.New("refect type is not p2pnet.P2pNetListener")
-	// 			return err
-	// 		}
-
-	// 		peerMgr.AddListener(l)
-	// 	}
-	// }
-
 	// header factory
 	obj, err := s.objFactory.CreateObject(cfg.HeaderFactory)
 	if err != nil {
@@ -439,92 +422,6 @@ func (s *BaseServer) buildReg(srvCfg *SrvBuildCfg) error {
 	s.regCenter = regCenter
 	return nil
 }
-
-// func (s *BaseServer) buildRpcSrv(srvCfg *SrvBuildCfg) error {
-// 	var err error = nil
-// 	defer s.ec.DeferThrow("buildRpcSrv", &err)
-
-// 	cfg := srvCfg.RpcSrv
-
-// 	// net
-// 	obj, err := s.objFactory.CreateObject(cfg.SrvNet)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	n, ok := obj.(server.Net)
-// 	if !ok {
-// 		err = errors.New("refect type is not server.Net")
-// 		return err
-// 	}
-
-// 	// peerMgr := s.p2pConnSrv.GetPeerMgr()
-// 	// peerMgr.AddListener(n)
-
-// 	// server
-// 	srv := server.NewBaseServer("rpcsrv", n)
-// 	if cfg.InterType == INTER_TYPE_JSON {
-// 		srv.AddGlobalInterceptor(&server.JsonInterceptor{})
-// 	} else if cfg.InterType == INTER_TYPE_PROTO {
-// 		srv.AddGlobalInterceptor(&PbInterceptor{})
-// 	}
-
-// 	srv.SetDebugMode(srvCfg.IsDebugMode)
-
-// 	server.Builder.Build(srv, cfg.RpcSrv)
-// 	s.srv = srv
-// 	return nil
-
-// 	// server
-// 	// obj, err := s.objFactory.CreateObject(cfg.Srv)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-
-// 	// srv, ok := obj.(rpc.Server)
-// 	// if !ok {
-// 	// 	err = errors.New("refect type is not rpc.Server")
-// 	// 	return err
-// 	// }
-
-// 	// net := srv.GetRpcNet()
-// 	// rpcSrvNet, ok := net.(*RpcNetListener)
-// 	// if ok {
-// 	// 	var peerMgr p2pnet.PeerMgr = nil
-// 	// 	if cfg.IsUseSrvConn {
-// 	// 		peerMgr = s.p2pConnSrv.GetPeerMgr()
-// 	// 	} else {
-// 	// 		peerMgr = s.p2pConnCli.GetPeerMgr()
-// 	// 	}
-
-// 	// 	peerMgr.AddTopPriorityListener(rpcSrvNet)
-// 	// }
-
-// 	// rpc.Builder.BuildSrv(srv, cfg.RpcSrv)
-// 	// srv.SetDebugMode(srvCfg.IsDebugMode)
-// 	// s.rpcSrv = srv
-
-// 	// var peerMgr p2pnet.PeerMgr = nil
-// 	// if cfg.IsUseSrvConn {
-// 	// 	peerMgr = s.p2pConnSrv.GetPeerMgr()
-// 	// } else {
-// 	// 	peerMgr = s.p2pConnCli.GetPeerMgr()
-// 	// }
-
-// 	// rpc.Builder.BuildSrv(cfg.RpcSrv)
-// 	// services := rpc.Server.GetAllServices()
-// 	// for _, srv := range services {
-// 	// 	net := srv.GetRpcNet()
-// 	// 	rpcSrvNet, ok := net.(*RpcNetListener)
-// 	// 	if ok {
-// 	// 		peerMgr.AddTopPriorityListener(rpcSrvNet)
-// 	// 	}
-
-// 	// 	srv.SetDebugMode(srvCfg.IsDebugMode)
-// 	// }
-
-// 	// return nil
-// }
 
 func (s *BaseServer) buildP2pSrv(cfg *P2pSrvCfg, bDebugMode bool) error {
 	var err error = nil
