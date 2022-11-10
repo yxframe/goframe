@@ -65,13 +65,13 @@ type RegCfg struct {
 	WatchDataKeys []*RegWatchDataCfg `json:"watch_data"`
 }
 
-type RpcSrvCfg struct {
-	// MaxReadQue   uint32       `json:"max_read_queue"`
-	IsUseSrvConn bool           `json:"is_use_srv_conn"`
-	SrvNet       string         `json:"srv_net"`
-	InterType    int            `json:"inter_type"` // 0 none, 1 pb, 2 json
-	RpcSrv       *server.Config `json:"server"`
-}
+// type RpcSrvCfg struct {
+// 	// MaxReadQue   uint32       `json:"max_read_queue"`
+// 	IsUseSrvConn bool           `json:"is_use_srv_conn"`
+// 	SrvNet       string         `json:"srv_net"`
+// 	InterType    int            `json:"inter_type"` // 0 none, 1 pb, 2 json
+// 	RpcSrv       *server.Config `json:"server"`
+// }
 
 type P2pSrvCfg struct {
 	SrvNet    string         `json:"srv_net"`
@@ -97,7 +97,7 @@ type SrvBuildCfg struct {
 	Reg         *RegCfg        `json:"reg"`
 	P2pConnCli  *P2pConnCliCfg `json:"p2p_cli"`
 	P2pConnSrv  *P2pConnSrvCfg
-	RpcSrv      *RpcSrvCfg
+	RpcSrv      *P2pSrvCfg
 	P2pSrv      *P2pSrvCfg
 	HttpSrv     *HttpSrvCfg
 	Db          *odb.Config

@@ -1,6 +1,5 @@
 {
-    "is_use_srv_conn" : true,
-    "srv_net" : "github.com/yxframe/goframe.TestSrvNet",
+    "srv_net" : "github.com/yxframe/goframe.RpcSrvNetListener",
     "inter_type" : 2,
     "server" :
     {

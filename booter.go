@@ -108,7 +108,7 @@ func (b *Booter) loadCfg(srvCfg *SrvBuildCfg, bootCfg *BootCfg) error {
 	}
 
 	if len(bootCfg.RpcSrvCfgPath) > 0 {
-		cfg := &RpcSrvCfg{}
+		cfg := &P2pSrvCfg{}
 		err = yx.LoadJsonConf(cfg, bootCfg.RpcSrvCfgPath, bootCfg.CfgDecodeCb)
 		if err != nil {
 			return err
