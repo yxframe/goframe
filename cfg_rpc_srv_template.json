@@ -8,6 +8,8 @@
         "max_req_num" : 10,
         "max_task_num" : 10,
         "auto_mod_cmd" : false,
+        "enumerable" : true,
+        "enum_protoNo" : 1,
         "services" :
         [
             {

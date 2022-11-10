@@ -41,10 +41,10 @@ type BaseServer struct {
 	p2pConnSrv p2pnet.Server
 	// headerFactory p2pnet.PackHeaderFactory
 	regCenter *RegCenter
-	// rpcSrv rpc.Server
-	http *httpsrv.Server
-	srv  *server.BaseServer
-	dc   *odb.DataCenter
+	rpcSrv    *server.BaseServer
+	http      *httpsrv.Server
+	srv       *server.BaseServer
+	dc        *odb.DataCenter
 
 	objFactory *yx.ObjectFactory
 	logger     *yx.Logger
@@ -59,10 +59,10 @@ func NewBaseServer() *BaseServer {
 		p2pConnSrv: nil,
 		// headerFactory: nil,
 		regCenter: nil,
-		// rpcSrv: nil,
-		http: nil,
-		srv:  nil,
-		dc:   nil,
+		rpcSrv:    nil,
+		http:      nil,
+		srv:       nil,
+		dc:        nil,
 
 		objFactory: yx.NewObjectFactory(),
 		logger:     nil,
@@ -88,9 +88,9 @@ func (s *BaseServer) GetRegCenter() *RegCenter {
 	return s.regCenter
 }
 
-// func (s *BaseServer) GetRpcSrv() rpc.Server {
-// 	return s.rpcSrv
-// }
+func (s *BaseServer) GetRpcSrv() *server.BaseServer {
+	return s.rpcSrv
+}
 
 func (s *BaseServer) GetHttpSrv() *httpsrv.Server {
 	return s.http
@@ -181,9 +181,9 @@ func (s *BaseServer) Start() {
 		go peerMgr.Start()
 	}
 
-	// if s.rpcSrv != nil {
-	// 	go s.rpcSrv.Start()
-	// }
+	if s.rpcSrv != nil {
+		go s.rpcSrv.Start()
+	}
 	// rpc.Server.Start()
 
 	if s.srv != nil {
@@ -214,9 +214,9 @@ func (s *BaseServer) Stop() {
 		s.regCenter.Stop()
 	}
 
-	// if s.rpcSrv != nil {
-	// 	s.rpcSrv.Stop()
-	// }
+	if s.rpcSrv != nil {
+		s.rpcSrv.Stop()
+	}
 	// rpc.Server.Stop()
 
 	if s.srv != nil {
