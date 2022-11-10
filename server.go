@@ -140,14 +140,14 @@ func (s *BaseServer) Build(cfg *SrvBuildCfg) error {
 	}
 
 	if cfg.RpcSrv != nil {
-		err = s.buildP2pSrv(cfg.RpcSrv, cfg.IsDebugMode)
+		err = s.buildRpcSrv(cfg)
 		if err != nil {
 			return err
 		}
 	}
 
 	if cfg.P2pSrv != nil {
-		err = s.buildP2pSrv(cfg.P2pSrv, cfg.IsDebugMode)
+		err = s.buildP2pSrv(cfg)
 		if err != nil {
 			return err
 		}
@@ -285,8 +285,8 @@ func (s *BaseServer) Close() {
 	}
 }
 
-func (s *BaseServer) IsRegPeer(peerType uint32, peerNo uint32, service string) bool {
-	if service != reg.REG_SRV {
+func (s *BaseServer) IsRegPeer(peerType uint32, peerNo uint32, mark string) bool {
+	if mark != reg.REG_SRV {
 		return false
 	}
 
@@ -301,8 +301,8 @@ func (s *BaseServer) IsRegPeer(peerType uint32, peerNo uint32, service string) b
 	return true
 }
 
-func (s *BaseServer) IsRegService(service string) bool {
-	return (service == reg.REG_SRV || service == reg.PUSH_MARK)
+func (s *BaseServer) IsRegService(mark string) bool {
+	return (mark == reg.REG_SRV || mark == reg.PUSH_MARK)
 }
 
 func (s *BaseServer) buildP2pConnCli(srvCfg *SrvBuildCfg) error {
@@ -423,7 +423,27 @@ func (s *BaseServer) buildReg(srvCfg *SrvBuildCfg) error {
 	return nil
 }
 
-func (s *BaseServer) buildP2pSrv(cfg *P2pSrvCfg, bDebugMode bool) error {
+func (s *BaseServer) buildRpcSrv(srvCfg *SrvBuildCfg) error {
+	srv, err := s.buildSrv("RpcSrv", srvCfg.RpcSrv, srvCfg.IsDebugMode)
+	if err != nil {
+		return err
+	}
+
+	s.rpcSrv = srv
+	return nil
+}
+
+func (s *BaseServer) buildP2pSrv(srvCfg *SrvBuildCfg) error {
+	srv, err := s.buildSrv("P2pSrv", srvCfg.P2pSrv, srvCfg.IsDebugMode)
+	if err != nil {
+		return err
+	}
+
+	s.srv = srv
+	return nil
+}
+
+func (s *BaseServer) buildSrv(name string, cfg *P2pSrvCfg, bDebugMode bool) (*server.BaseServer, error) {
 	var err error = nil
 	defer s.ec.DeferThrow("buildP2pSrv", &err)
 
@@ -432,20 +452,20 @@ func (s *BaseServer) buildP2pSrv(cfg *P2pSrvCfg, bDebugMode bool) error {
 	// net
 	obj, err := s.objFactory.CreateObject(cfg.SrvNet)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	n, ok := obj.(server.Net)
 	if !ok {
 		err = errors.New("refect type is not server.Net")
-		return err
+		return nil, err
 	}
 
 	// peerMgr := s.p2pConnSrv.GetPeerMgr()
 	// peerMgr.AddListener(n)
 
 	// server
-	srv := server.NewBaseServer("p2psrv", n)
+	srv := server.NewBaseServer(name, n)
 	if cfg.InterType == INTER_TYPE_JSON {
 		srv.AddGlobalInterceptor(&server.JsonInterceptor{})
 	} else if cfg.InterType == INTER_TYPE_PROTO {
@@ -455,8 +475,8 @@ func (s *BaseServer) buildP2pSrv(cfg *P2pSrvCfg, bDebugMode bool) error {
 	srv.SetDebugMode(bDebugMode)
 
 	server.Builder.Build(srv, cfg.Server)
-	s.srv = srv
-	return nil
+	// s.srv = srv
+	return srv, nil
 }
 
 func (s *BaseServer) buildHttpSrv(srvCfg *SrvBuildCfg) error {

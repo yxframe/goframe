@@ -52,10 +52,10 @@ func (l *RegPushNetListener) OnP2pNetError(m p2pnet.PeerMgr, peerType uint32, pe
 //     RpcNetListener
 //========================
 type P2pRpcNetMgr interface {
-	HandleOpenRpcPeer(peerType uint32, peerNo uint32, service string)
-	HandleCloseRpcPeer(peerType uint32, peerNo uint32, service string)
-	GetRpcHeaderFactory(peerType uint32, peerNo uint32, service string) p2pnet.PackHeaderFactory
-	GetRpcPeerMgr(peerType uint32, peerNo uint32, service string) p2pnet.PeerMgr
+	HandleOpenRpcPeer(peerType uint32, peerNo uint32, mark string)
+	HandleCloseRpcPeer(peerType uint32, peerNo uint32, mark string)
+	GetRpcHeaderFactory(peerType uint32, peerNo uint32, mark string) p2pnet.PackHeaderFactory
+	GetRpcPeerMgr(peerType uint32, peerNo uint32, mark string) p2pnet.PeerMgr
 }
 
 type RpcNetListener struct {
@@ -142,18 +142,15 @@ func canHandleRpcPack(n rpc.Net, pack *p2pnet.Pack, recvPeerType uint32, recvPee
 
 type RpcSrvNetListener struct {
 	server.BaseNet
-	mark     string
-	peerType uint32
-	peerNo   uint32
-	mgr      P2pRpcNetMgr
+	mark string
+	mgr  P2pRpcNetMgr
 }
 
-func NewRpcSrvNetListener(mark string, peerType uint32, peerNo uint32, mgr P2pRpcNetMgr) *RpcSrvNetListener {
+func NewRpcSrvNetListener(maxReadQue uint32, mark string, mgr P2pRpcNetMgr) *RpcSrvNetListener {
 	return &RpcSrvNetListener{
-		mark:     mark,
-		peerType: peerType,
-		peerNo:   peerNo,
-		mgr:      mgr,
+		BaseNet: *server.NewBaseNet(maxReadQue),
+		mark:    mark,
+		mgr:     mgr,
 	}
 }
 
