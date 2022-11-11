@@ -1,47 +1,35 @@
 {
-    "reader" : "github.com/yxlib/httpsrv.DefaultReader",
-    "writer" : "github.com/yxlib/httpsrv.DefaultWriter",
-    "inter_type" : 1,
-    "http" :
+    "srv_net" : "",
+    "inter_type" : 2,
+    "server" :
     {
-        "port" : 8080,
-        "allow_origin" : true,
-        "opr_field" : "opr",
-        "token_field" : "tk",
-        "serial_No_field" : "sno",
-        "params_field" : "data",
-        "code_field" : "code",
-        "result_field" : "data",
-        "server" :
-        {
-            "use_worker_mode" : false,
-            "max_req_num" : 10,
-            "max_task_num" : 10,
-            "auto_mod_cmd" : true,
-            "enumerable" : false,
-            "enum_protoNo" : 0,
-            "services" :
-            [
-                {
-                    "name" : "/example",
-                    "service" : "github.com/yxlib/httpsrv.ExampleService",
-                    "processors" :
-                    [
-                        {
-                            "name" : "test1",
-                            "handler" : "OnHandleCmd1",
-                            "req" : "github.com/yxlib/httpsrv.Cmd1Request",
-                            "resp" : "github.com/yxlib/httpsrv.Cmd1Response"
-                        },
-                        {
-                            "name" : "test2",
-                            "handler" : "OnHandleCmd2",
-                            "req" : "github.com/yxlib/httpsrv.Cmd2Request",
-                            "resp" : "github.com/yxlib/httpsrv.Cmd2Response"
-                        }
-                    ]
-                }
-            ]
-        }
+        "use_worker_mode" : false,
+        "max_req_num" : 10,
+        "max_task_num" : 10,
+        "auto_mod_cmd" : true,
+        "enumerable" : false,
+        "enum_protoNo" : 0,
+        "services" :
+        [
+            {
+                "name" : "/example",
+                "service" : "github.com/yxlib/httpsrv.ExampleService",
+                "processors" :
+                [
+                    {
+                        "name" : "test1",
+                        "handler" : "OnHandleCmd1",
+                        "req" : "github.com/yxlib/httpsrv.Cmd1Request",
+                        "resp" : "github.com/yxlib/httpsrv.Cmd1Response"
+                    },
+                    {
+                        "name" : "test2",
+                        "handler" : "OnHandleCmd2",
+                        "req" : "github.com/yxlib/httpsrv.Cmd2Request",
+                        "resp" : "github.com/yxlib/httpsrv.Cmd2Response"
+                    }
+                ]
+            }
+        ]
     }
 }

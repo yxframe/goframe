@@ -39,6 +39,16 @@ type P2pConnSrvCfg struct {
 	// Server           *server.Config        `json:"server"`
 }
 
+type HttpCfg struct {
+	// Reader    string          `json:"reader"`
+	// Writer    string          `json:"writer"`
+	Port          uint16 `json:"port"`
+	IsAllowOrigin bool   `json:"allow_origin"`
+	Handler       string `json:"handler"`
+	// InterType     int             `json:"inter_type"` // 0 none, 1 pb, 2 json
+	Http *httpsrv.Config `json:"fields"`
+}
+
 type RegWatchSrvCfg struct {
 	SrvType uint32 `json:"srv_type"`
 	Data    string `json:"data"`
@@ -73,17 +83,10 @@ type RegCfg struct {
 // 	RpcSrv       *server.Config `json:"server"`
 // }
 
-type P2pSrvCfg struct {
+type ServerCfg struct {
 	SrvNet    string         `json:"srv_net"`
 	InterType int            `json:"inter_type"` // 0 none, 1 pb, 2 json
 	Server    *server.Config `json:"server"`
-}
-
-type HttpSrvCfg struct {
-	Reader    string          `json:"reader"`
-	Writer    string          `json:"writer"`
-	InterType int             `json:"inter_type"` // 0 none, 1 pb, 2 json
-	Http      *httpsrv.Config `json:"http"`
 }
 
 type SrvBuildCfg struct {
@@ -97,9 +100,10 @@ type SrvBuildCfg struct {
 	Reg         *RegCfg        `json:"reg"`
 	P2pConnCli  *P2pConnCliCfg `json:"p2p_cli"`
 	P2pConnSrv  *P2pConnSrvCfg
-	RpcSrv      *P2pSrvCfg
-	P2pSrv      *P2pSrvCfg
-	HttpSrv     *HttpSrvCfg
+	Http        *HttpCfg
+	RpcSrv      *ServerCfg
+	P2pSrv      *ServerCfg
+	HttpSrv     *ServerCfg
 	Db          *odb.Config
 }
 

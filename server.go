@@ -40,11 +40,13 @@ type BaseServer struct {
 	p2pConnCli *p2pnet.SimpleClient
 	p2pConnSrv p2pnet.Server
 	// headerFactory p2pnet.PackHeaderFactory
-	regCenter *RegCenter
-	rpcSrv    *server.BaseServer
-	http      *httpsrv.Server
-	srv       *server.BaseServer
-	dc        *odb.DataCenter
+	httpHandler HttpHandler
+	http        *httpsrv.Server
+	regCenter   *RegCenter
+	rpcSrv      *server.BaseServer
+	httpSrv     *server.BaseServer
+	srv         *server.BaseServer
+	dc          *odb.DataCenter
 
 	objFactory *yx.ObjectFactory
 	logger     *yx.Logger
@@ -58,11 +60,13 @@ func NewBaseServer() *BaseServer {
 		p2pConnCli: nil,
 		p2pConnSrv: nil,
 		// headerFactory: nil,
-		regCenter: nil,
-		rpcSrv:    nil,
-		http:      nil,
-		srv:       nil,
-		dc:        nil,
+		httpHandler: nil,
+		http:        nil,
+		regCenter:   nil,
+		rpcSrv:      nil,
+		httpSrv:     nil,
+		srv:         nil,
+		dc:          nil,
 
 		objFactory: yx.NewObjectFactory(),
 		logger:     nil,
@@ -84,6 +88,10 @@ func (s *BaseServer) GetP2pConnSrv() p2pnet.Server {
 	return s.p2pConnSrv
 }
 
+func (s *BaseServer) GetHttp() *httpsrv.Server {
+	return s.http
+}
+
 func (s *BaseServer) GetRegCenter() *RegCenter {
 	return s.regCenter
 }
@@ -92,8 +100,8 @@ func (s *BaseServer) GetRpcSrv() *server.BaseServer {
 	return s.rpcSrv
 }
 
-func (s *BaseServer) GetHttpSrv() *httpsrv.Server {
-	return s.http
+func (s *BaseServer) GetHttpSrv() *server.BaseServer {
+	return s.httpSrv
 }
 
 func (s *BaseServer) GetSrv() *server.BaseServer {
@@ -132,6 +140,13 @@ func (s *BaseServer) Build(cfg *SrvBuildCfg) error {
 		}
 	}
 
+	if cfg.Http != nil {
+		err = s.buildHttp(cfg)
+		if err != nil {
+			return err
+		}
+	}
+
 	if cfg.Reg != nil {
 		err = s.buildReg(cfg)
 		if err != nil {
@@ -157,6 +172,11 @@ func (s *BaseServer) Build(cfg *SrvBuildCfg) error {
 		err = s.buildHttpSrv(cfg)
 		if err != nil {
 			return err
+		}
+
+		if s.httpHandler != nil && cfg.Http != nil {
+			s.httpHandler.SetServer(s.httpSrv)
+			s.httpHandler.SetConfig(cfg.Http.Http)
 		}
 	}
 
@@ -185,6 +205,10 @@ func (s *BaseServer) Start() {
 		go s.rpcSrv.Start()
 	}
 	// rpc.Server.Start()
+
+	// if s.httpSrv != nil {
+	// 	go s.httpSrv.Start()
+	// }
 
 	if s.srv != nil {
 		go s.srv.Start()
@@ -265,7 +289,7 @@ func (s *BaseServer) Listen() error {
 			return s.ec.Throw("Listen", err)
 		}
 	} else if s.http != nil {
-		addr := ":" + strconv.FormatUint(uint64(s.cfg.HttpSrv.Http.Port), 10)
+		addr := ":" + strconv.FormatUint(uint64(s.cfg.Http.Port), 10)
 		err := s.http.Listen(addr)
 		if err != nil {
 			return s.ec.Throw("Listen", err)
@@ -382,6 +406,32 @@ func (s *BaseServer) buildP2pConnSrv(srvCfg *SrvBuildCfg) error {
 	return nil
 }
 
+func (s *BaseServer) buildHttp(srvCfg *SrvBuildCfg) error {
+	var err error = nil
+	defer s.ec.DeferThrow("buildHttp", &err)
+
+	cfg := srvCfg.Http
+
+	// handler
+	obj, err := s.objFactory.CreateObject(cfg.Handler)
+	if err != nil {
+		return err
+	}
+
+	handler, ok := obj.(HttpHandler)
+	if !ok {
+		err = errors.New("refect type is not HttpHandler")
+		return err
+	}
+
+	s.httpHandler = handler
+
+	httpConn := httpsrv.NewServer()
+	httpConn.SetHandler(handler, cfg.IsAllowOrigin)
+	s.http = httpConn
+	return nil
+}
+
 func (s *BaseServer) buildReg(srvCfg *SrvBuildCfg) error {
 	var err error = nil
 	defer s.ec.DeferThrow("buildReg", &err)
@@ -433,6 +483,16 @@ func (s *BaseServer) buildRpcSrv(srvCfg *SrvBuildCfg) error {
 	return nil
 }
 
+func (s *BaseServer) buildHttpSrv(srvCfg *SrvBuildCfg) error {
+	srv, err := s.buildSrv("HttpSrv", srvCfg.HttpSrv, srvCfg.IsDebugMode)
+	if err != nil {
+		return err
+	}
+
+	s.httpSrv = srv
+	return nil
+}
+
 func (s *BaseServer) buildP2pSrv(srvCfg *SrvBuildCfg) error {
 	srv, err := s.buildSrv("P2pSrv", srvCfg.P2pSrv, srvCfg.IsDebugMode)
 	if err != nil {
@@ -443,22 +503,26 @@ func (s *BaseServer) buildP2pSrv(srvCfg *SrvBuildCfg) error {
 	return nil
 }
 
-func (s *BaseServer) buildSrv(name string, cfg *P2pSrvCfg, bDebugMode bool) (*server.BaseServer, error) {
+func (s *BaseServer) buildSrv(name string, cfg *ServerCfg, bDebugMode bool) (*server.BaseServer, error) {
 	var err error = nil
 	defer s.ec.DeferThrow("buildP2pSrv", &err)
 
 	// cfg := srvCfg.P2pSrv
 
 	// net
-	obj, err := s.objFactory.CreateObject(cfg.SrvNet)
-	if err != nil {
-		return nil, err
-	}
+	var n server.Net = nil
+	if len(strings.TrimSpace(cfg.SrvNet)) > 0 {
+		obj, err := s.objFactory.CreateObject(cfg.SrvNet)
+		if err != nil {
+			return nil, err
+		}
 
-	n, ok := obj.(server.Net)
-	if !ok {
-		err = errors.New("refect type is not server.Net")
-		return nil, err
+		ok := false
+		n, ok = obj.(server.Net)
+		if !ok {
+			err = errors.New("refect type is not server.Net")
+			return nil, err
+		}
 	}
 
 	// peerMgr := s.p2pConnSrv.GetPeerMgr()
@@ -477,52 +541,6 @@ func (s *BaseServer) buildSrv(name string, cfg *P2pSrvCfg, bDebugMode bool) (*se
 	server.Builder.Build(srv, cfg.Server)
 	// s.srv = srv
 	return srv, nil
-}
-
-func (s *BaseServer) buildHttpSrv(srvCfg *SrvBuildCfg) error {
-	var err error = nil
-	defer s.ec.DeferThrow("buildHttpSrv", &err)
-
-	cfg := srvCfg.HttpSrv
-
-	// reader
-	obj, err := s.objFactory.CreateObject(cfg.Reader)
-	if err != nil {
-		return err
-	}
-
-	r, ok := obj.(httpsrv.Reader)
-	if !ok {
-		err = errors.New("refect type is not httpsrv.Reader")
-		return err
-	}
-
-	// writer
-	obj, err = s.objFactory.CreateObject(cfg.Writer)
-	if err != nil {
-		return err
-	}
-
-	w, ok := obj.(httpsrv.Writer)
-	if !ok {
-		err = errors.New("refect type is not httpsrv.Writer")
-		return err
-	}
-
-	// server
-	http := httpsrv.NewServer(r, w, cfg.Http)
-	if cfg.InterType == INTER_TYPE_JSON {
-		http.AddGlobalInterceptor(&server.JsonInterceptor{})
-	} else if cfg.InterType == INTER_TYPE_PROTO {
-		http.AddGlobalInterceptor(&PbInterceptor{})
-	}
-
-	http.SetDebugMode(srvCfg.IsDebugMode)
-
-	server.Builder.Build(http.BaseServer, cfg.Http.Server)
-	// httpsrv.Builder.Build(http, cfg.Http)
-	s.http = http
-	return nil
 }
 
 func (s *BaseServer) buildDb(srvCfg *SrvBuildCfg) error {

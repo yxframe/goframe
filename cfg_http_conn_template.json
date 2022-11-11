@@ -1,0 +1,14 @@
+{
+    "port" : 8080,
+    "allow_origin" : true,
+    "handler": "github.com/yxlib/goframe.DefaultHttpHandler",
+    "fields" :
+    {
+        "opr_field" : "opr",
+        "token_field" : "tk",
+        "serial_No_field" : "sno",
+        "params_field" : "data",
+        "code_field" : "code",
+        "result_field" : "data"
+    }
+}

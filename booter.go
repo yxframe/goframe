@@ -16,6 +16,7 @@ type BootCfg struct {
 	BaseCfgPath    string
 	P2pConnCfgPath string
 	P2pSrvCfgPath  string
+	HttpCfgPath    string
 	HttpSrvCfgPath string
 	RpcSrvCfgPath  string
 	DbCfgPath      string
@@ -107,8 +108,18 @@ func (b *Booter) loadCfg(srvCfg *SrvBuildCfg, bootCfg *BootCfg) error {
 		srvCfg.P2pConnSrv = cfg
 	}
 
+	if len(bootCfg.HttpCfgPath) > 0 {
+		cfg := &HttpCfg{}
+		err = yx.LoadJsonConf(cfg, bootCfg.HttpCfgPath, bootCfg.CfgDecodeCb)
+		if err != nil {
+			return err
+		}
+
+		srvCfg.Http = cfg
+	}
+
 	if len(bootCfg.RpcSrvCfgPath) > 0 {
-		cfg := &P2pSrvCfg{}
+		cfg := &ServerCfg{}
 		err = yx.LoadJsonConf(cfg, bootCfg.RpcSrvCfgPath, bootCfg.CfgDecodeCb)
 		if err != nil {
 			return err
@@ -118,7 +129,7 @@ func (b *Booter) loadCfg(srvCfg *SrvBuildCfg, bootCfg *BootCfg) error {
 	}
 
 	if len(bootCfg.P2pSrvCfgPath) > 0 {
-		cfg := &P2pSrvCfg{}
+		cfg := &ServerCfg{}
 		err = yx.LoadJsonConf(cfg, bootCfg.P2pSrvCfgPath, bootCfg.CfgDecodeCb)
 		if err != nil {
 			return err
@@ -128,7 +139,7 @@ func (b *Booter) loadCfg(srvCfg *SrvBuildCfg, bootCfg *BootCfg) error {
 	}
 
 	if len(bootCfg.HttpSrvCfgPath) > 0 {
-		cfg := &HttpSrvCfg{}
+		cfg := &ServerCfg{}
 		err = yx.LoadJsonConf(cfg, bootCfg.HttpSrvCfgPath, bootCfg.CfgDecodeCb)
 		if err != nil {
 			return err
