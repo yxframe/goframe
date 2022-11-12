@@ -60,7 +60,7 @@ func (l *DefaultHttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 	var err error = nil
 	defer l.ec.DeferThrow("ServeHTTP", &err)
 
-	var respObj *httpsrv.Response = nil
+	respObj := &httpsrv.Response{}
 	defer func() {
 		writeErr := httpsrv.DefaultWrite(w, l.cfg, respObj, err)
 		l.ec.Catch("OnHttpReadPack", &writeErr)
@@ -69,14 +69,19 @@ func (l *DefaultHttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 	// read
 	reqObj, err := httpsrv.DefaultRead(req, l.cfg)
 	if err != nil {
+		respObj.Code = server.RESP_CODE_UNMARSHAL_REQ_FAILED
 		return
 	}
+
+	respObj.Opr = reqObj.Opr
+	respObj.SerialNo = reqObj.SerialNo
 
 	// token
 	var connId uint64 = 0
 	if l.tkDecoder != nil {
 		connId, err = l.tkDecoder.DecodeToken(reqObj.Pattern, reqObj.Opr, reqObj.Token)
 		if err != nil {
+			respObj.Code = server.RESP_CODE_UNMARSHAL_REQ_FAILED
 			return
 		}
 	}
@@ -85,9 +90,14 @@ func (l *DefaultHttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 
 	// proto No.
 	procMapper := l.srv.GetProcMapper()
-	procName := fmt.Sprintf("%s.%s", reqObj.Pattern, reqObj.Opr)
+	pattern := reqObj.Pattern
+	if pattern[0] == '/' && len(pattern) > 1 {
+		pattern = pattern[1:]
+	}
+	procName := fmt.Sprintf("%s.%s", pattern, reqObj.Opr)
 	protoNo, ok := procMapper[procName]
 	if !ok {
+		respObj.Code = server.RESP_CODE_SYS_UNKNOWN_CMD
 		err = ErrNotSupportOpr
 		return
 	}
@@ -105,14 +115,9 @@ func (l *DefaultHttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 	// handle
 	response := server.NewResponse(request)
 	err = l.srv.HandleRequest(request, response)
-	if err != nil {
-		return
+	if err == nil {
+		respObj.Result = string(response.Payload)
 	}
 
-	respObj = &httpsrv.Response{
-		Opr:      reqObj.Opr,
-		SerialNo: reqObj.SerialNo,
-		Code:     response.Code,
-		Result:   string(response.Payload),
-	}
+	respObj.Code = response.Code
 }
