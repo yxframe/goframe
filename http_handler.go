@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/yxlib/httpsrv"
 	"github.com/yxlib/server"
@@ -16,6 +17,7 @@ var (
 
 type HttpHandler interface {
 	http.Handler
+	SetBasePattern(pattern string)
 	SetConfig(cfg *httpsrv.Config)
 	SetServer(srv *server.BaseServer)
 }
@@ -31,11 +33,12 @@ type TokenDecoder interface {
 }
 
 type DefaultHttpHandler struct {
-	srv       *server.BaseServer
-	cfg       *httpsrv.Config
-	tkDecoder TokenDecoder
-	logger    *yx.Logger
-	ec        *yx.ErrCatcher
+	srv         *server.BaseServer
+	basePattern string
+	cfg         *httpsrv.Config
+	tkDecoder   TokenDecoder
+	logger      *yx.Logger
+	ec          *yx.ErrCatcher
 }
 
 func NewDefaultHttpHandler(tkDecoder TokenDecoder) *DefaultHttpHandler {
@@ -46,6 +49,10 @@ func NewDefaultHttpHandler(tkDecoder TokenDecoder) *DefaultHttpHandler {
 		logger:    yx.NewLogger("DefaultHttpHandler"),
 		ec:        yx.NewErrCatcher("DefaultHttpHandler"),
 	}
+}
+
+func (l *DefaultHttpHandler) SetBasePattern(pattern string) {
+	l.basePattern = pattern
 }
 
 func (l *DefaultHttpHandler) SetConfig(cfg *httpsrv.Config) {
@@ -91,8 +98,10 @@ func (l *DefaultHttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 	// proto No.
 	procMapper := l.srv.GetProcMapper()
 	pattern := reqObj.Pattern
-	if pattern[0] == '/' && len(pattern) > 1 {
-		pattern = pattern[1:]
+
+	baseLen := len(l.basePattern)
+	if strings.Index(pattern, l.basePattern) == 0 && len(pattern) > baseLen {
+		pattern = pattern[baseLen:]
 	}
 	procName := fmt.Sprintf("%s.%s", pattern, reqObj.Opr)
 	protoNo, ok := procMapper[procName]

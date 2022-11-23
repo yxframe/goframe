@@ -175,6 +175,7 @@ func (s *BaseServer) Build(cfg *SrvBuildCfg) error {
 		}
 
 		if s.httpHandler != nil && cfg.Http != nil {
+			s.httpHandler.SetBasePattern(cfg.Http.BasePattern)
 			s.httpHandler.SetServer(s.httpSrv)
 			s.httpHandler.SetConfig(cfg.Http.Http)
 		}

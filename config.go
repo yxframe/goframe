@@ -43,6 +43,7 @@ type HttpCfg struct {
 	// Reader    string          `json:"reader"`
 	// Writer    string          `json:"writer"`
 	Port          uint16 `json:"port"`
+	BasePattern   string `json:"base_pattern"`
 	IsAllowOrigin bool   `json:"allow_origin"`
 	Handler       string `json:"handler"`
 	// InterType     int             `json:"inter_type"` // 0 none, 1 pb, 2 json

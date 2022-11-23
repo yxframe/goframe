@@ -1,5 +1,6 @@
 {
     "port" : 8080,
+    "base_pattern" : "/",
     "allow_origin" : true,
     "handler": "github.com/yxlib/goframe.DefaultHttpHandler",
     "fields" :
