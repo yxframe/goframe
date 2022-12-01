@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/yxlib/httpsrv v0.3.7
-	github.com/yxlib/odb v0.3.11
+	github.com/yxlib/odb v0.3.12
 	github.com/yxlib/p2pnet v0.3.4
 	github.com/yxlib/reg v0.3.5
 	github.com/yxlib/rpc v0.3.4

@@ -65,7 +65,7 @@ func (l *DefaultHttpHandler) SetServer(srv *server.BaseServer) {
 
 func (l *DefaultHttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	var err error = nil
-	defer l.ec.DeferThrow("ServeHTTP", &err)
+	// defer l.ec.DeferThrow("ServeHTTP", &err)
 
 	respObj := &httpsrv.Response{}
 	defer func() {
