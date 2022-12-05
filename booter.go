@@ -35,7 +35,7 @@ func NewBooter() *Booter {
 	}
 }
 
-func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, buildSuccCb func() error, registerSuccCb func() error) error {
+func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, logPrintFunc func(lv int, logStr string), buildSuccCb func() error, registerSuccCb func() error) error {
 	var err error = nil
 
 	// check params
@@ -56,7 +56,7 @@ func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, buildSuccCb func
 
 	// init logger
 	buildCfg := cfg.GetSrvBuildCfg()
-	yx.ConfigLogger(buildCfg.Log)
+	yx.ConfigLogger(buildCfg.Log, logPrintFunc)
 	yx.StartLogger()
 	defer yx.StopLogger()
 
