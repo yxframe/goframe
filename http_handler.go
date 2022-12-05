@@ -100,7 +100,7 @@ func (l *DefaultHttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 	pattern := reqObj.Pattern
 
 	baseLen := len(l.basePattern)
-	if strings.Index(pattern, l.basePattern) == 0 && len(pattern) > baseLen {
+	if baseLen > 0 && len(pattern) >= baseLen && strings.Index(pattern, l.basePattern) == 0 {
 		pattern = pattern[baseLen:]
 	}
 	procName := fmt.Sprintf("%s.%s", pattern, reqObj.Opr)
