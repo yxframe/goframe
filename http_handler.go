@@ -118,8 +118,8 @@ func (l *DefaultHttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 	request.Payload = []byte(reqObj.Params)
 	request.SerialNo = reqObj.SerialNo
 
-	l.logger.I("Module: ", request.Mod)
-	l.logger.I("Command: ", request.Cmd)
+	// l.logger.I("Module: ", request.Mod)
+	// l.logger.I("Command: ", request.Cmd)
 
 	// handle
 	response := server.NewResponse(request)
