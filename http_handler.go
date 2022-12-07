@@ -93,7 +93,8 @@ func (l *DefaultHttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 		}
 	}
 
-	l.logger.D("Connect ID: ", connId)
+	log := fmt.Sprint("[C] Connect ID: ", connId, "\n")
+	l.logger.Detail(yx.LOG_LV_DEBUG, []string{log})
 
 	// proto No.
 	procMapper := l.srv.GetProcMapper()
