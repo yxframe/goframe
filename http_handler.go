@@ -93,8 +93,9 @@ func (l *DefaultHttpHandler) ServeHTTP(w http.ResponseWriter, req *http.Request)
 		}
 	}
 
-	log := fmt.Sprint("[C] Connect ID: ", connId, "\n")
-	l.logger.Detail(yx.LOG_LV_DEBUG, []string{log})
+	logs := make([][]interface{}, 0)
+	logs = append(logs, yx.LogArgs("[C] Connect ID: ", connId))
+	l.logger.Detail(yx.LOG_LV_DEBUG, logs)
 
 	// proto No.
 	procMapper := l.srv.GetProcMapper()
