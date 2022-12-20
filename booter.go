@@ -21,6 +21,10 @@ type BootCfg struct {
 	RpcSrvCfgPath  string
 	DbCfgPath      string
 	CfgDecodeCb    func(data []byte) ([]byte, error)
+	BuildSuccCb    func() error
+	StartCb        func()
+	StopCb         func()
+	RegisterSuccCb func() error
 }
 
 type Booter struct {
@@ -35,7 +39,7 @@ func NewBooter() *Booter {
 	}
 }
 
-func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, logPrintFunc func(lv int, logStr string), buildSuccCb func() error, registerSuccCb func() error) error {
+func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, logPrintFunc func(lv int, logStr string)) error {
 	var err error = nil
 
 	// check params
@@ -80,8 +84,8 @@ func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, logPrintFunc fun
 		return err
 	}
 
-	if buildSuccCb != nil {
-		err = buildSuccCb()
+	if bootCfg.BuildSuccCb != nil {
+		err = bootCfg.BuildSuccCb()
 		if err != nil {
 			return err
 		}
@@ -91,7 +95,7 @@ func (b *Booter) Boot(srv Server, cfg SrvCfg, bootCfg *BootCfg, logPrintFunc fun
 
 	// start
 	bNeedReg := (buildCfg.Reg != nil)
-	err = b.start(srv, bNeedReg, registerSuccCb)
+	err = b.start(srv, bNeedReg, bootCfg)
 	return err
 }
 
@@ -162,7 +166,7 @@ func (b *Booter) loadCfg(srvCfg *SrvBuildCfg, bootCfg *BootCfg) error {
 	return nil
 }
 
-func (b *Booter) start(srv Server, bNeedReg bool, registerSuccCb func() error) error {
+func (b *Booter) start(srv Server, bNeedReg bool, bootCfg *BootCfg) error {
 	var err error = nil
 	defer b.ec.DeferThrow("start", &err)
 
@@ -170,6 +174,16 @@ func (b *Booter) start(srv Server, bNeedReg bool, registerSuccCb func() error) e
 	b.logger.I("=====>  Start Server...")
 
 	srv.Start()
+	if bootCfg.StartCb != nil {
+		bootCfg.StartCb()
+	}
+
+	defer func() {
+		if bootCfg.StopCb != nil {
+			bootCfg.StopCb()
+		}
+	}()
+
 	defer srv.Stop()
 
 	name := srv.GetName()
@@ -179,7 +193,7 @@ func (b *Booter) start(srv Server, bNeedReg bool, registerSuccCb func() error) e
 
 	// register
 	if bNeedReg {
-		go b.register(srv, registerSuccCb)
+		go b.register(srv, bootCfg.RegisterSuccCb)
 	}
 
 	// listen
