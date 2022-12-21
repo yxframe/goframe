@@ -48,6 +48,7 @@ type BaseServer struct {
 	srv         *server.BaseServer
 	dc          *odb.DataCenter
 
+	evtStop    *yx.Event
 	objFactory *yx.ObjectFactory
 	logger     *yx.Logger
 	ec         *yx.ErrCatcher
@@ -68,6 +69,7 @@ func NewBaseServer() *BaseServer {
 		srv:         nil,
 		dc:          nil,
 
+		evtStop:    yx.NewEvent(),
 		objFactory: yx.NewObjectFactory(),
 		logger:     nil,
 		ec:         nil,
@@ -253,6 +255,8 @@ func (s *BaseServer) Stop() {
 		s.dc.CloseAllDbDriver()
 		s.dc.CloseAllCacheDriver()
 	}
+
+	s.evtStop.Send()
 }
 
 func (s *BaseServer) Register() error {
@@ -555,13 +559,20 @@ func (s *BaseServer) checkShutdownFile() {
 	ticker := time.NewTicker(time.Duration(s.cfg.Shutdown.CheckIntv) * time.Second)
 
 	for {
-		<-ticker.C
-		ok, _ := yx.IsFileExist(s.cfg.Shutdown.File)
-		if ok {
-			s.Close()
-			break
+		select {
+		case <-s.evtStop.C:
+			goto Exit0
+
+		case <-ticker.C:
+			ok, _ := yx.IsFileExist(s.cfg.Shutdown.File)
+			if ok {
+				s.Close()
+				goto Exit0
+			}
 		}
+
 	}
 
+Exit0:
 	ticker.Stop()
 }
